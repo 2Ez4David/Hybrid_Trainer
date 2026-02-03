@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Dumbbell, Footprints, Bike, Volleyball, Moon, Sun, ChevronLeft, ChevronRight, Settings, BarChart2, Save, Brain, Check, Info } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { Dumbbell, Footprints, Bike, Volleyball, Moon, Sun, ChevronLeft, ChevronRight, Settings, BarChart2, Save, Brain, Check, Info, X, TrendingUp, Activity, Timer } from 'lucide-react';
 
 export default function HybridCoach() {
   const [week, setWeek] = useState(0);
@@ -13,24 +13,24 @@ export default function HybridCoach() {
 
   // --- CONFIG ---
   const [configs, setConfigs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hybrid_conf_v26')) || Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); } 
+    try { return JSON.parse(localStorage.getItem('hybrid_conf_final')) || Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); } 
     catch { return Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); }
   });
   
   const [logs, setLogs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hybrid_logs_v26')) || {}; } 
+    try { return JSON.parse(localStorage.getItem('hybrid_logs_final')) || {}; } 
     catch { return {}; }
   });
 
   const [userSettings, setUserSettings] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hybrid_user_v26')) || { maxHR: 190 }; }
+    try { return JSON.parse(localStorage.getItem('hybrid_user_final')) || { maxHR: 190 }; }
     catch { return { maxHR: 190 }; }
   });
 
   // Persistence
-  useEffect(() => localStorage.setItem('hybrid_conf_v26', JSON.stringify(configs)), [configs]);
-  useEffect(() => localStorage.setItem('hybrid_logs_v26', JSON.stringify(logs)), [logs]);
-  useEffect(() => localStorage.setItem('hybrid_user_v26', JSON.stringify(userSettings)), [userSettings]);
+  useEffect(() => localStorage.setItem('hybrid_conf_final', JSON.stringify(configs)), [configs]);
+  useEffect(() => localStorage.setItem('hybrid_logs_final', JSON.stringify(logs)), [logs]);
+  useEffect(() => localStorage.setItem('hybrid_user_final', JSON.stringify(userSettings)), [userSettings]);
   
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -51,11 +51,11 @@ export default function HybridCoach() {
 
   // --- LOGIC: PHASE INFO ---
   const getPhaseDetails = (w) => {
-    if (w < 5) return { title: "Base Phase", focus: "Grundlagenausdauer & Gewöhnung", color: "blue" };
-    if (w < 10) return { title: "Build Phase", focus: "Steigerung von Volumen & Intensität", color: "indigo" };
-    if (w < 12) return { title: "Peak Phase", focus: "Maximale Belastung vor dem Rennen", color: "purple" };
-    if (w === 12) return { title: "Taper Phase", focus: "Erholung & Speicher füllen", color: "green" };
-    return { title: "Race Week", focus: "Minimale Belastung. Race Day!", color: "orange" };
+    if (w < 5) return { title: "Base Phase", focus: "Grundlagenausdauer & Gewöhnung" };
+    if (w < 10) return { title: "Build Phase", focus: "Steigerung von Volumen & Intensität" };
+    if (w < 12) return { title: "Peak Phase", focus: "Maximale Belastung vor dem Rennen" };
+    if (w === 12) return { title: "Taper Phase", focus: "Erholung & Speicher füllen" };
+    return { title: "Race Week", focus: "Minimale Belastung. Race Day!" };
   };
 
   const currentPhase = getPhaseDetails(week);
@@ -147,8 +147,10 @@ export default function HybridCoach() {
     const score = (i) => {
       if (days[i]) return -99;
       let s = 10;
+      // Avoid stacking cardio
       if (days[i-1]?.type?.match(/run|vol/)) s -= 5;
       if (days[i+1]?.type?.match(/run|vol/)) s -= 5;
+      // Avoid running after Leg day immediately
       if (days[i-1]?.type === 'gym' && days[i-1].t.includes('Beine')) s -= 3;
       return s;
     };
@@ -208,16 +210,19 @@ export default function HybridCoach() {
 
             const exKey = exName.replace(/\s/g,'');
             
+            // Check Gym
             if(log.exercises && log.exercises[exKey]) {
                 const maxW = Math.max(...log.exercises[exKey].map(s => parseFloat(s.w) || 0));
                 if(maxW > bestVal) bestVal = maxW;
                 found = true;
             }
 
+            // Check Run
             if(log.run && log.run.dist && log.run.time) {
                 const dist = parseFloat(log.run.dist);
                 const timeParts = log.run.time.split(':');
                 const mins = parseFloat(timeParts[0]) + (parseFloat(timeParts[1]||0)/60);
+                
                 if(dist > 0 && mins > 0) {
                     const pace = mins / dist;
                     if(exName === "Long Run" && dist > 10) { bestVal = pace; found = true; }
@@ -230,27 +235,90 @@ export default function HybridCoach() {
     return data;
   };
 
-  const getTotalStats = () => {
+  // NEW: Comprehensive Stats Logic
+  const getFullStats = () => {
     const data = [];
+    let grandTotalKm = 0;
+    let grandTotalKg = 0;
+    let totalRPE = 0;
+    let rpeCount = 0;
+    let completedCount = 0;
+
     for(let w=0; w<=week; w++) {
-        let vol = 0; let dist = 0;
+        let vol = 0; 
+        let dist = 0;
+        let paceSum = 0;
+        let runCount = 0;
+        
         Object.keys(logs).forEach(key => {
             if (key.startsWith(`w${w}d`)) {
                 const log = logs[key];
-                if(log.exercises) Object.values(log.exercises).forEach(sets => sets.forEach(s => vol += (parseInt(s.w)||0) * (parseInt(s.r)||0)));
-                if(log.run && log.run.dist) dist += parseFloat(log.run.dist);
+                
+                if(log.done) completedCount++;
+
+                if(log.exercises) {
+                    Object.values(log.exercises).forEach(sets => {
+                        sets.forEach(s => {
+                            const w = parseFloat(s.w) || 0;
+                            const r = parseFloat(s.r) || 0;
+                            vol += w * r; // Progression Check: Volume Load
+                        });
+                    });
+                }
+                
+                if(log.run) {
+                    const d = parseFloat(log.run.dist) || 0;
+                    dist += d; // Progression Check: Distance Accumulation
+                    
+                    if(d > 0 && log.run.time) {
+                        const t = log.run.time.split(':');
+                        const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60);
+                        if(m > 0) {
+                            paceSum += (m / d);
+                            runCount++;
+                        }
+                    }
+                    if(log.run.rpe) {
+                        totalRPE += parseFloat(log.run.rpe);
+                        rpeCount++;
+                    }
+                }
             }
         });
-        data.push({ name: `W${w+1}`, vol, dist });
+
+        grandTotalKg += vol;
+        grandTotalKm += dist;
+
+        data.push({ 
+            name: `W${w+1}`, 
+            vol, 
+            dist,
+            pace: runCount ? (paceSum/runCount).toFixed(2) : 0
+        });
     }
-    return data;
+
+    return { 
+        chartData: data, 
+        totalKm: grandTotalKm.toFixed(1), 
+        totalKg: (grandTotalKg / 1000).toFixed(1), // In Tons
+        avgRPE: rpeCount ? (totalRPE / rpeCount).toFixed(1) : '-',
+        completed: completedCount
+    };
   };
 
-  // --- TOGGLES ---
+  const fullStats = getFullStats();
+
+  // --- ACTIONS ---
   const toggleUni = (d) => {
     const n = [...configs];
     const list = n[week].uni;
     if (list.includes(d)) n[week].uni = list.filter(x => x !== d); else n[week].uni.push(d);
+    setConfigs(n);
+  };
+
+  const toggleVol = () => {
+    const n = [...configs];
+    n[week].vol = !n[week].vol;
     setConfigs(n);
   };
 
@@ -270,15 +338,15 @@ export default function HybridCoach() {
         {/* HEADER */}
         <div className={`flex justify-between items-center mb-4 p-4 rounded-xl shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <div>
-            <h1 className="text-xl font-bold">Hybrid V26</h1>
-            <div className="text-xs opacity-60">14 Wochen Coach</div>
+            <h1 className="text-xl font-bold">Hybrid Coach</h1>
+            <div className="text-xs opacity-60">14 Wochen Plan</div>
           </div>
           <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-full ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
 
-        {/* PHASE INFO BOX */}
+        {/* PHASE INFO */}
         <div className={`mb-6 p-4 rounded-xl shadow-sm border flex items-start gap-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div className={`p-2 rounded-full ${darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                 <Info size={20} />
@@ -362,11 +430,43 @@ export default function HybridCoach() {
 
                 {statsSubView === 'overview' ? (
                     <div className="space-y-6">
+                        
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                <div className="text-xs opacity-50 mb-1">Laufen</div>
+                                <div className="font-bold text-lg text-orange-500">{fullStats.totalKm} <span className="text-xs text-slate-400">km</span></div>
+                            </div>
+                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                <div className="text-xs opacity-50 mb-1">Last</div>
+                                <div className="font-bold text-lg text-blue-500">{fullStats.totalKg} <span className="text-xs text-slate-400">t</span></div>
+                            </div>
+                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                <div className="text-xs opacity-50 mb-1">RPE</div>
+                                <div className="font-bold text-lg text-purple-500">{fullStats.avgRPE}</div>
+                            </div>
+                        </div>
+
+                        {/* Pace Chart */}
+                        <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Timer size={16}/> Pace Entwicklung (min/km)</h3>
+                            <div className="h-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={fullStats.chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
+                                        <Line type="monotone" dataKey="pace" stroke="#10b981" strokeWidth={3} dot={{r: 3}} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
                         <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                             <h3 className="font-bold text-sm mb-4 flex gap-2"><Dumbbell size={16}/> Gym Volumen (Last)</h3>
                             <div className="h-40">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={getTotalStats()}>
+                                    <BarChart data={fullStats.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                                         <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
@@ -379,7 +479,7 @@ export default function HybridCoach() {
                             <h3 className="font-bold text-sm mb-4 flex gap-2"><Footprints size={16}/> Lauf Distanz (km)</h3>
                             <div className="h-40">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={getTotalStats()}>
+                                    <BarChart data={fullStats.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                                         <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
@@ -430,8 +530,6 @@ export default function HybridCoach() {
         )}
 
         {/* --- MODALS --- */}
-        
-        {/* SETUP */}
         {showSetup && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowSetup(false)}>
                 <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${darkMode ? 'bg-slate-900' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
@@ -462,13 +560,12 @@ export default function HybridCoach() {
             </div>
         )}
 
-        {/* DAY TRACKER */}
         {selectedDay && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedDay(null)}>
                 <div className={`w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] ${darkMode ? 'bg-slate-900' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
                     <div className={`p-4 text-white flex justify-between items-center ${darkMode ? 'bg-slate-950' : 'bg-slate-900'}`}>
                         <h3 className="font-bold">{selectedDay.title}</h3>
-                        <button onClick={() => setSelectedDay(null)}>✕</button>
+                        <button onClick={() => setSelectedDay(null)}><X size={20} /></button>
                     </div>
                     <div className="p-6 overflow-y-auto">
                         <p className="text-sm opacity-60 mb-4">{selectedDay.desc}</p>
