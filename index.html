@@ -293,4 +293,209 @@
                     <div class="grid grid-cols-3 gap-3 mb-4">
                         <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Km</div><div class="font-bold text-lg text-orange-500">${totalKm.toFixed(1)}</div></div>
                         <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Tonnen</div><div class="font-bold text-lg text-blue-500">${(totalKg/1000).toFixed(1)}</div></div>
-                        <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Ø RPE</div><div class="font-bold text-lg text-purple-500">${rpe
+                        <div class="p-3 bg-white dark:bg-slate-900 rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Ø RPE</div><div class="font-bold text-lg text-purple-500">${rpeCnt?(totalRPE/rpeCnt).toFixed(1):'-'}</div></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800 mb-4">
+                        <h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.gym} Gym Volumen</h3>
+                        <div class="flex items-end gap-1 h-24">
+                            ${gymData.map((v,i) => `<div class="flex-1 bg-blue-500 rounded-t" style="height:${(v/maxGym)*100}%; min-height:4px;"></div>`).join('')}
+                        </div>
+                        <div class="flex justify-between text-xs opacity-50 mt-2 dark:text-slate-400"><span>Start</span><span>Aktuell</span></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
+                        <h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.run} Lauf Distanz</h3>
+                        <div class="flex items-end gap-1 h-24">
+                            ${runData.map((v,i) => `<div class="flex-1 bg-orange-500 rounded-t" style="height:${(v/maxRun)*100}%; min-height:4px;"></div>`).join('')}
+                        </div>
+                        <div class="flex justify-between text-xs opacity-50 mt-2 dark:text-slate-400"><span>Start</span><span>Aktuell</span></div>
+                    </div>
+                `;
+            } else {
+                const gymSet = new Set();
+                Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e)));
+                const gymList = Array.from(gymSet).sort();
+                
+                html += `<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
+                    <h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3>
+                    <select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+                        <option value="" disabled ${!state.selectedExercise?'selected':''}>Wählen...</option>
+                        <option value="Long Run" ${state.selectedExercise==='Long Run'?'selected':''}>Long Run</option>
+                        <option value="Easy Run" ${state.selectedExercise==='Easy Run'?'selected':''}>Easy Run</option>
+                        <optgroup label="Gym">${gymList.map(e=>`<option value="${e}" ${state.selectedExercise===e?'selected':''}>${e}</option>`).join('')}</optgroup>
+                    </select>`;
+
+                if(state.selectedExercise) {
+                    let hist = [], maxVal = 0;
+                    for(let w=0; w<14; w++) {
+                        let best = 0;
+                        for(let d=0; d<7; d++) {
+                            const l = state.logs[`w${w}d${d}`];
+                            if(!l) continue;
+                            const k = state.selectedExercise.replace(/\s/g,'');
+                            if(l.exercises && l.exercises[k]) {
+                                const m = Math.max(...l.exercises[k].map(s=>parseFloat(s.w)||0));
+                                if(m > best) best = m;
+                            }
+                            if(l.run && l.run.dist && l.run.time) {
+                                const dist = parseFloat(l.run.dist);
+                                const t = l.run.time.split(':');
+                                const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60);
+                                if(dist > 0 && m > 0) {
+                                    const p = m/dist;
+                                    if(state.selectedExercise === 'Long Run' && dist > 10) best = p;
+                                    else if(state.selectedExercise === 'Easy Run' && dist <= 10) best = p;
+                                }
+                            }
+                        }
+                        if(best > maxVal) maxVal = best;
+                        hist.push({w: w+1, val: best});
+                    }
+                    
+                    if(maxVal > 0) {
+                        const h = 100, w = 280;
+                        const points = hist.map((d, i) => {
+                            const x = (i / (hist.length - 1)) * w;
+                            const y = h - ((d.val || 0) / maxVal) * h;
+                            return `${x},${y}`;
+                        }).join(' ');
+
+                        html += `
+                            <div class="mt-4">
+                                <svg width="100%" height="130" viewBox="-10 0 ${w+20} ${h+30}" class="overflow-visible">
+                                    <polyline points="${points}" class="fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2" />
+                                    ${hist.map((d, i) => {
+                                        const x = (i / (hist.length - 1)) * w;
+                                        const y = h - ((d.val || 0) / maxVal) * h;
+                                        return d.val > 0 ? `<circle cx="${x}" cy="${y}" r="3" class="fill-blue-500 dark:fill-blue-400" /><text x="${x}" y="${h+20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${i+1}</text>` : '';
+                                    }).join('')}
+                                </svg>
+                                <div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf 14 Wochen</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400">Keine Daten verfügbar</div>`;
+                    }
+                }
+                html += `</div>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        // --- 5. ACTIONS (Global) ---
+        window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
+        window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
+        window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
+        
+        function save(key, val) {
+            if(key) localStorage.setItem(STORE[key], JSON.stringify(val));
+            else {
+                localStorage.setItem(STORE.CONF, JSON.stringify(state.configs));
+                localStorage.setItem(STORE.LOGS, JSON.stringify(state.logs));
+                localStorage.setItem(STORE.USER, JSON.stringify(state.user));
+                localStorage.setItem(STORE.THEME, JSON.stringify(state.darkMode));
+            }
+            window.render();
+        }
+
+        window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+        
+        window.openDay = (json) => {
+            const day = JSON.parse(decodeURIComponent(json));
+            state.selDay = day; 
+            const log = state.logs[day.id] || {};
+            const run = log.run || { time:'', dist:'', bpm:'', rpe:5 };
+            
+            document.getElementById('modal-title').innerText = day.title;
+            let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">${day.desc}</p>`;
+
+            if (day.type === 'gym') {
+                day.exercises.forEach((ex, i) => {
+                    const k = ex.replace(/\s/g, '');
+                    const sets = log.exercises?.[k] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
+                    html += `<div class="mb-4 pb-2 border-b dark:border-slate-800">
+                        <div class="text-sm font-bold mb-2 dark:text-white">${ex}</div>
+                        <div class="flex gap-2">
+                            ${sets.map((s, idx) => `
+                                <div class="flex gap-1">
+                                    <input type="number" placeholder="kg" class="w-12 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.w}" onchange="window.logGym('${day.id}','${k}',${idx},'w',this.value)">
+                                    <input type="number" placeholder="rp" class="w-10 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.r}" onchange="window.logGym('${day.id}','${k}',${idx},'r',this.value)">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+                });
+            } else if (day.type !== 'rest') {
+                html += `
+                    <div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div>
+                        <div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div>
+                    </div>
+                    <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div>
+                    <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>
+                `;
+                if(day.subtype==='easy' || day.type==='bike') {
+                    const isBike = state.configs[state.week].bike.includes(day.id);
+                    html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen' : 'Zu Rad'}</button>`;
+                }
+            } else {
+                html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`;
+            }
+
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        window.openSetup = () => {
+            const cfg = state.configs[state.week] || { uni: [], vol: true };
+            let html = `<p class="text-xs font-bold opacity-50 mb-2 dark:text-slate-400">UNI TAGE (Gym Prio)</p><div class="grid grid-cols-2 gap-2 mb-6" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">`;
+            weekDays.forEach(d => {
+                const act = cfg.uni.includes(d);
+                html += `<button onclick="window.toggleUni('${d}')" class="p-2 text-xs border rounded ${act ? 'bg-blue-600 text-white border-blue-600' : 'dark:border-slate-700 dark:text-slate-300'}">${d}</button>`;
+            });
+            html += `</div>
+            <div class="mb-4"><label class="text-xs font-bold opacity-60 block mb-1 dark:text-slate-400">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="window.saveHR(this.value)" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700"></div>
+            <button onclick="window.toggleVol()" class="w-full p-3 border rounded text-xs font-bold ${cfg.vol ? 'bg-pink-50 text-pink-700 dark:bg-pink-900 dark:text-pink-300' : 'dark:border-slate-700 dark:text-slate-300'}">Volleyball (Di) ${cfg.vol?'AN':'AUS'}</button>
+            <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-6 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
+            
+            document.getElementById('modal-title').innerText = `Setup W${state.week+1}`;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-footer').innerHTML = '';
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        // --- GLOBAL LOGGERS ---
+        window.logGym = (id, k, idx, f, v) => {
+            if(!state.logs[id]) state.logs[id] = { exercises: {} };
+            if(!state.logs[id].exercises) state.logs[id].exercises = {};
+            if(!state.logs[id].exercises[k]) state.logs[id].exercises[k] = [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
+            state.logs[id].exercises[k][idx][f] = v;
+            save();
+        };
+
+        window.logRun = (id, f, v) => {
+            if(!state.logs[id]) state.logs[id] = { run: {} };
+            if(!state.logs[id].run) state.logs[id].run = {};
+            state.logs[id].run[f] = v;
+            save();
+        };
+
+        window.finishDay = (id) => {
+            if(!state.logs[id]) state.logs[id] = {};
+            state.logs[id].done = true;
+            save(); window.closeModal();
+        };
+
+        window.saveHR = (v) => { state.user.maxHR = v; save(); };
+        window.toggleUni = (d) => { const list = state.configs[state.week].uni; if(list.includes(d)) state.configs[state.week].uni = list.filter(x=>x!==d); else state.configs[state.week].uni.push(d); save(); window.openSetup(); };
+        window.toggleVol = () => { state.configs[state.week].vol = !state.configs[state.week].vol; save(); window.openSetup(); };
+        window.toggleBike = (id) => { const list = state.configs[state.week].bike; if(list.includes(id)) state.configs[state.week].bike = list.filter(x=>x!==id); else state.configs[state.week].bike.push(id); save(); window.closeModal(); window.render(); };
+
+        // --- INIT ---
+        window.onload = function() {
+            window.render();
+        };
+    </script>
+</body>
+</html>
