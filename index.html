@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
-import { Dumbbell, Footprints, Bike, Volleyball, Moon, Sun, ChevronLeft, ChevronRight, Settings, BarChart2, Save, Brain, Check, Info, X, TrendingUp, Activity, Timer } from 'lucide-react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar 
+} from 'recharts';
+import { 
+  Dumbbell, Footprints, Bike, Volleyball, Moon, Sun, ChevronLeft, ChevronRight, 
+  Settings, BarChart2, Save, Brain, Check, Info, X, Calendar 
+} from 'lucide-react';
 
 export default function HybridCoach() {
   const [week, setWeek] = useState(0);
@@ -11,10 +16,16 @@ export default function HybridCoach() {
   const [showSetup, setShowSetup] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  // --- CONFIG ---
+  // --- CONFIG & SPEICHERUNG ---
+  
+  // Lädt Daten aus dem LocalStorage oder nutzt Standardwerte
   const [configs, setConfigs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hybrid_conf_final')) || Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); } 
-    catch { return Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); }
+    try { 
+      return JSON.parse(localStorage.getItem('hybrid_conf_final')) || 
+             Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); 
+    } catch { 
+      return Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); 
+    }
   });
   
   const [logs, setLogs] = useState(() => {
@@ -27,17 +38,18 @@ export default function HybridCoach() {
     catch { return { maxHR: 190 }; }
   });
 
-  // Persistence
+  // Speichert Änderungen automatisch
   useEffect(() => localStorage.setItem('hybrid_conf_final', JSON.stringify(configs)), [configs]);
   useEffect(() => localStorage.setItem('hybrid_logs_final', JSON.stringify(logs)), [logs]);
   useEffect(() => localStorage.setItem('hybrid_user_final', JSON.stringify(userSettings)), [userSettings]);
   
+  // Dark Mode Logik
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // --- CONSTANTS ---
+  // --- KONSTANTEN & LOGIK ---
   const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   
   const splits = {
@@ -49,22 +61,23 @@ export default function HybridCoach() {
     Full: { t: "Gym: Ganzkörper", d: "Erhalt & Maschinen", ex: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse", "Rückenstrecker"] }
   };
 
-  // --- LOGIC: PHASE INFO ---
+  // --- PHASE INFO ---
   const getPhaseDetails = (w) => {
-    if (w < 5) return { title: "Base Phase", focus: "Grundlagenausdauer & Gewöhnung" };
-    if (w < 10) return { title: "Build Phase", focus: "Steigerung von Volumen & Intensität" };
-    if (w < 12) return { title: "Peak Phase", focus: "Maximale Belastung vor dem Rennen" };
-    if (w === 12) return { title: "Taper Phase", focus: "Erholung & Speicher füllen" };
-    return { title: "Race Week", focus: "Minimale Belastung. Race Day!" };
+    if (w < 5) return { title: "Base Phase", focus: "Grundlagenausdauer" };
+    if (w < 10) return { title: "Build Phase", focus: "Volumen steigern" };
+    if (w < 12) return { title: "Peak Phase", focus: "Maximale Belastung" };
+    if (w === 12) return { title: "Taper Phase", focus: "Erholung vor dem Rennen" };
+    return { title: "Race Week", focus: "Alles Gute für den Lauf!" };
   };
 
   const currentPhase = getPhaseDetails(week);
 
-  // --- LOGIC: ADAPTATION ---
+  // --- AI ADAPTION ---
   const adaptFactor = useMemo(() => {
     if (week === 0) return 1.0;
     let rpeSum = 0, bpmSum = 0, count = 0;
     
+    // Prüft die Daten der Vorwoche
     Object.keys(logs).forEach(k => {
       if (k.startsWith(`w${week-1}`) && logs[k].run) {
         if (logs[k].run.rpe) rpeSum += parseInt(logs[k].run.rpe);
@@ -78,14 +91,18 @@ export default function HybridCoach() {
     const avgBPM = bpmSum > 0 ? bpmSum / count : 0;
     const maxHR = parseInt(userSettings.maxHR) || 190;
     
+    // Logik:
+    // 1. Hoher Puls bei Easy Runs? (>78% MaxHR) -> Ermüdung -> Reduzieren
     if (avgBPM > (maxHR * 0.78)) return 0.9; 
+    // 2. Hohe RPE? (>8) -> Reduzieren
     if (avgRPE > 8) return 0.9;
+    // 3. Niedrige RPE (<4) -> Steigern
     if (avgRPE < 4) return 1.1;
 
     return 1.0;
   }, [week, logs, userSettings.maxHR]);
 
-  // --- LOGIC: PLAN GENERATION ---
+  // --- PLAN GENERIERUNG ---
   const generatePlan = (wIdx) => {
     const cfg = configs[wIdx] || { uni: [], vol: true, bike: [] };
     const days = Array(7).fill(null);
@@ -94,35 +111,37 @@ export default function HybridCoach() {
     // 1. Volleyball
     if (cfg.vol) days[1] = { type: 'vol', title: "Volleyball", desc: "HIIT Ersatz & Sprungkraft", id: `w${wIdx}d1` };
 
-    // 2. Long Run (14 Weeks Logic)
+    // 2. Long Run (14 Wochen Logik)
     let lrDist;
     let lrTitle = "Long Run";
     let lrDesc = "Zone 2. Pace egal.";
 
     if (wIdx === 13) { 
-        lrDist = 21.1; lrTitle = "HALBMARATHON"; lrDesc = "Viel Erfolg! Du hast es geschafft.";
+        lrDist = 21.1; lrTitle = "HALBMARATHON"; lrDesc = "Viel Erfolg!";
     } 
     else if (wIdx === 12) {
-        lrDist = 10.0; lrTitle = "Taper Run"; lrDesc = "Erholung. Beine frisch machen.";
+        lrDist = 10.0; lrTitle = "Taper Run"; lrDesc = "Beine lockern.";
     }
     else if (wIdx === 11) {
         lrDist = 18.0; 
     }
     else {
+        // Build Phase: Start bei 7km, steigern bis 17km
         const raw = 7 + (wIdx * 1.0);
         lrDist = Math.min(raw, 17.0);
     }
     
+    // Adaption anwenden (außer in Race Week)
     if (wIdx < 12) lrDist = (lrDist * factor).toFixed(1);
     else if (wIdx !== 13) lrDist = lrDist.toFixed(1);
 
     const lr = { type: 'run', subtype: 'long', title: wIdx === 13 ? lrTitle : `${lrTitle} (${lrDist} km)`, desc: lrDesc };
     
-    // Place Sunday (preferred) or Saturday
+    // Sonntag (Prio 1) oder Samstag
     if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` };
     else if (!days[5]) days[5] = { ...lr, id: `w${wIdx}d5` };
 
-    // 3. Gym Placement
+    // 3. Gym Verteilung
     const availGym = cfg.uni.filter(d => days[weekDays.indexOf(d)] === null);
     const gymCount = availGym.length >= 3 ? 3 : 2;
     let placed = 0;
@@ -131,26 +150,28 @@ export default function HybridCoach() {
       if (placed >= gymCount) return;
       const idx = weekDays.indexOf(d);
       let wo = splits.Full;
+      // Split Logik
       if (gymCount === 2) wo = (placed === 0) ? splits.Upper : splits.Lower;
       if (gymCount === 3) wo = [splits.Push, splits.Pull, splits.Legs][placed];
       
-      if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Erhalt (Leicht)", desc: "Nur Bewegung, keine Ermüdung." };
+      // Tapering Gym (Woche 13 & 14)
+      if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Erhalt (Leicht)", desc: "Nur Bewegung." };
 
       days[idx] = { type: 'gym', ...wo, id: `w${wIdx}d${idx}` };
       placed++;
     });
 
-    // 4. Run Filling
-    let needed = (cfg.vol ? 2 : 3) - 1; 
-    if (wIdx === 13) needed = 1;
+    // 4. Läufe auffüllen
+    let needed = (cfg.vol ? 2 : 3) - 1; // Ziel: 2-3 Läufe minus Long Run
+    if (wIdx === 13) needed = 1; // Nur 1 Shakeout in Race Week
 
     const score = (i) => {
       if (days[i]) return -99;
       let s = 10;
-      // Avoid stacking cardio
+      // Nicht direkt nach/vor Cardio
       if (days[i-1]?.type?.match(/run|vol/)) s -= 5;
       if (days[i+1]?.type?.match(/run|vol/)) s -= 5;
-      // Avoid running after Leg day immediately
+      // Nicht direkt nach Leg Day
       if (days[i-1]?.type === 'gym' && days[i-1].t.includes('Beine')) s -= 3;
       return s;
     };
@@ -161,11 +182,11 @@ export default function HybridCoach() {
       if (best === -1) break;
       
       let baseDist = Math.min(5 + wIdx * 0.5, 9);
-      if (wIdx === 12) baseDist = 5; // Taper
-      if (wIdx === 13) baseDist = 3; // Shakeout
+      if (wIdx === 12) baseDist = 5; 
+      if (wIdx === 13) baseDist = 3; 
 
       const dist = (baseDist * factor).toFixed(1);
-      let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: wIdx === 13 ? "Shakeout Run" : "Locker." };
+      let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: wIdx === 13 ? "Shakeout" : "Locker." };
       
       if (cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio (Gelenkschonend)" };
       
@@ -173,7 +194,7 @@ export default function HybridCoach() {
       needed--;
     }
 
-    // 5. Rest
+    // 5. Rest Days
     for(let i=0; i<7; i++) if(!days[i]) days[i] = { type: 'rest', title: "Recovery", id: `w${wIdx}d${i}` };
     
     return days.map(d => ({ 
@@ -187,7 +208,7 @@ export default function HybridCoach() {
 
   const days = generatePlan(week);
 
-  // --- STATS DATA HELPERS ---
+  // --- STATS HELPER ---
   const getAllExercises = () => {
     const gymSet = new Set();
     Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e)));
@@ -210,14 +231,14 @@ export default function HybridCoach() {
 
             const exKey = exName.replace(/\s/g,'');
             
-            // Check Gym
+            // Gym Max
             if(log.exercises && log.exercises[exKey]) {
                 const maxW = Math.max(...log.exercises[exKey].map(s => parseFloat(s.w) || 0));
                 if(maxW > bestVal) bestVal = maxW;
                 found = true;
             }
 
-            // Check Run
+            // Run Pace
             if(log.run && log.run.dist && log.run.time) {
                 const dist = parseFloat(log.run.dist);
                 const timeParts = log.run.time.split(':');
@@ -235,78 +256,26 @@ export default function HybridCoach() {
     return data;
   };
 
-  // NEW: Comprehensive Stats Logic
-  const getFullStats = () => {
+  const getTotalStats = () => {
     const data = [];
-    let grandTotalKm = 0;
-    let grandTotalKg = 0;
-    let totalRPE = 0;
-    let rpeCount = 0;
-    let completedCount = 0;
-
+    let totalKm = 0;
+    
     for(let w=0; w<=week; w++) {
-        let vol = 0; 
-        let dist = 0;
-        let paceSum = 0;
-        let runCount = 0;
-        
+        let vol = 0; let dist = 0;
         Object.keys(logs).forEach(key => {
             if (key.startsWith(`w${w}d`)) {
                 const log = logs[key];
-                
-                if(log.done) completedCount++;
-
-                if(log.exercises) {
-                    Object.values(log.exercises).forEach(sets => {
-                        sets.forEach(s => {
-                            const w = parseFloat(s.w) || 0;
-                            const r = parseFloat(s.r) || 0;
-                            vol += w * r; // Progression Check: Volume Load
-                        });
-                    });
-                }
-                
-                if(log.run) {
-                    const d = parseFloat(log.run.dist) || 0;
-                    dist += d; // Progression Check: Distance Accumulation
-                    
-                    if(d > 0 && log.run.time) {
-                        const t = log.run.time.split(':');
-                        const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60);
-                        if(m > 0) {
-                            paceSum += (m / d);
-                            runCount++;
-                        }
-                    }
-                    if(log.run.rpe) {
-                        totalRPE += parseFloat(log.run.rpe);
-                        rpeCount++;
-                    }
-                }
+                if(log.exercises) Object.values(log.exercises).forEach(sets => sets.forEach(s => vol += (parseInt(s.w)||0) * (parseInt(s.r)||0)));
+                if(log.run && log.run.dist) dist += parseFloat(log.run.dist);
             }
         });
-
-        grandTotalKg += vol;
-        grandTotalKm += dist;
-
-        data.push({ 
-            name: `W${w+1}`, 
-            vol, 
-            dist,
-            pace: runCount ? (paceSum/runCount).toFixed(2) : 0
-        });
+        totalKm += dist;
+        data.push({ name: `W${w+1}`, vol, dist });
     }
-
-    return { 
-        chartData: data, 
-        totalKm: grandTotalKm.toFixed(1), 
-        totalKg: (grandTotalKg / 1000).toFixed(1), // In Tons
-        avgRPE: rpeCount ? (totalRPE / rpeCount).toFixed(1) : '-',
-        completed: completedCount
-    };
+    return { chartData: data, totalKm: totalKm.toFixed(1) };
   };
 
-  const fullStats = getFullStats();
+  const stats = getTotalStats();
 
   // --- ACTIONS ---
   const toggleUni = (d) => {
@@ -316,21 +285,15 @@ export default function HybridCoach() {
     setConfigs(n);
   };
 
-  const toggleVol = () => {
-    const n = [...configs];
-    n[week].vol = !n[week].vol;
-    setConfigs(n);
-  };
-
   const toggleBike = (id) => {
     const n = [...configs];
     const list = n[week].bike;
     if(list.includes(id)) n[week].bike = list.filter(x => x !== id); else n[week].bike.push(id);
     setConfigs(n);
-    setSelectedDay(null); // Close modal
+    setSelectedDay(null);
   };
 
-  // --- UI RENDER ---
+  // --- UI ---
   return (
     <div className={`min-h-screen pb-20 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} font-sans transition-colors duration-300`}>
       <div className="max-w-md mx-auto p-4">
@@ -373,7 +336,7 @@ export default function HybridCoach() {
                     <Settings size={14} /> Setup
                 </button>
                 <button onClick={() => setView(view === 'plan' ? 'stats' : 'plan')} className={`px-3 py-2 rounded-lg text-xs font-bold border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <BarChart2 size={16} />
+                    {view === 'plan' ? <BarChart2 size={16} /> : <Calendar size={16} />}
                 </button>
             </div>
         </div>
@@ -420,53 +383,26 @@ export default function HybridCoach() {
             </div>
         ) : (
             <div className="fade-in space-y-6">
-                <div className="flex justify-between mb-4">
-                    <button onClick={() => setView('plan')} className="text-sm font-bold flex items-center gap-1 opacity-60"><ChevronLeft size={16}/> Zurück</button>
-                    <div className={`flex p-1 rounded-lg border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <button onClick={() => setStatsSubView('overview')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView === 'overview' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Übersicht</button>
-                        <button onClick={() => setStatsSubView('details')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView === 'details' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Details</button>
-                    </div>
+                <div className={`flex p-1 rounded-lg border mb-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <button onClick={() => setStatsSubView('overview')} className={`flex-1 px-3 py-1 text-xs font-bold rounded ${statsSubView === 'overview' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Übersicht</button>
+                    <button onClick={() => setStatsSubView('details')} className={`flex-1 px-3 py-1 text-xs font-bold rounded ${statsSubView === 'details' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Details</button>
                 </div>
 
                 {statsSubView === 'overview' ? (
                     <div className="space-y-6">
-                        
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                <div className="text-xs opacity-50 mb-1">Laufen</div>
-                                <div className="font-bold text-lg text-orange-500">{fullStats.totalKm} <span className="text-xs text-slate-400">km</span></div>
+                        <div className={`p-4 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div>
+                                <div className="text-xs opacity-50">Gesamtstrecke</div>
+                                <div className="text-2xl font-bold text-orange-500">{stats.totalKm} km</div>
                             </div>
-                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                <div className="text-xs opacity-50 mb-1">Last</div>
-                                <div className="font-bold text-lg text-blue-500">{fullStats.totalKg} <span className="text-xs text-slate-400">t</span></div>
-                            </div>
-                            <div className={`p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                <div className="text-xs opacity-50 mb-1">RPE</div>
-                                <div className="font-bold text-lg text-purple-500">{fullStats.avgRPE}</div>
-                            </div>
-                        </div>
-
-                        {/* Pace Chart */}
-                        <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Timer size={16}/> Pace Entwicklung (min/km)</h3>
-                            <div className="h-40">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={fullStats.chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                                        <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
-                                        <Line type="monotone" dataKey="pace" stroke="#10b981" strokeWidth={3} dot={{r: 3}} />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <Activity className="text-orange-500 opacity-20" size={32} />
                         </div>
 
                         <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Dumbbell size={16}/> Gym Volumen (Last)</h3>
+                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Dumbbell size={16}/> Gym Volumen</h3>
                             <div className="h-40">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={fullStats.chartData}>
+                                    <BarChart data={stats.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                                         <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
@@ -476,10 +412,10 @@ export default function HybridCoach() {
                             </div>
                         </div>
                         <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Footprints size={16}/> Lauf Distanz (km)</h3>
+                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Footprints size={16}/> Lauf Distanz</h3>
                             <div className="h-40">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={fullStats.chartData}>
+                                    <BarChart data={stats.chartData}>
                                         <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                                         <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
