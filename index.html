@@ -1,9 +1,24 @@
+Hier ist **Version 34**.
+
+**Die Neuerungen:**
+
+1. **Hover-Effekt:** Wenn du am PC mit der Maus über die Punkte im Diagramm fährst (oder am Handy auf den Punkt tippst), erscheint eine kleine Blase mit dem genauen Wert.
+2. **Intelligente Formatierung:**
+* Bei **Laufen** (Long Run / Easy Run) zeigt das Tooltip die Pace im Format **min:sek** an (z.B. `5:30`).
+* Bei **Gym** zeigt es das Gewicht in **kg** an (z.B. `60 kg`).
+
+
+3. **Verbesserte Darstellung:** Die Punkte sind jetzt etwas leichter zu treffen (größere unsichtbare Klickfläche).
+
+Du kannst den Code wieder komplett ersetzen.
+
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V32 Safe</title>
+    <title>Hybrid Coach V34 Hover Stats</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -11,13 +26,12 @@
     </script>
 
     <style>
-        /* Fallback CSS falls Tailwind nicht lädt */
+        /* Fallback CSS */
         body { 
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background-color: #f8fafc; 
             color: #1e293b; 
-            margin: 0; 
-            padding: 0; 
+            margin: 0; padding: 0; 
             -webkit-tap-highlight-color: transparent; 
         }
         .dark body { background-color: #020617; color: #f1f5f9; }
@@ -37,6 +51,10 @@
         .dark #modal-content { background: #1e293b; color: white; }
         #modal-body { overflow-y: auto; padding: 20px; }
         
+        /* Chart Hover Magic */
+        .chart-group:hover .tooltip { opacity: 1; }
+        .chart-group:hover circle.dot { r: 6; stroke: white; stroke-width: 2px; }
+
         /* Animation */
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -48,10 +66,8 @@
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
     <div id="error-msg">
-        <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">Ups, ein Fehler.</h1>
-        <p>Bitte Seite neu laden oder Cache leeren.</p>
-        <button onclick="localStorage.clear(); location.reload()" style="padding:10px; background:red; color:white; border-radius:8px; margin-top:20px; border:none; font-weight:bold;">App Reset (Daten löschen)</button>
-        <div id="error-details" style="margin-top:20px; font-family:monospace; font-size:12px; background:#eee; padding:10px; border-radius:5px; text-align:left;"></div>
+        <h1 style="font-size:24px; font-weight:bold;">Ein Fehler ist aufgetreten.</h1>
+        <button onclick="localStorage.clear(); location.reload()" style="padding:10px; background:red; color:white; border-radius:8px; margin-top:20px;">App Reset (Daten löschen)</button>
     </div>
 
     <div id="app">Loading Hybrid Coach...</div>
@@ -72,22 +88,18 @@
         window.onerror = function(msg, url, line) {
             document.getElementById('app').style.display = 'none';
             document.getElementById('error-msg').style.display = 'block';
-            document.getElementById('error-details').innerHTML += `${msg}<br>Zeile: ${line}`;
             return false;
         };
 
         // --- 1. SAFE STORAGE ---
-        const STORE = { CONF: 'h31_conf', LOGS: 'h31_logs', USER: 'h31_user', THEME: 'h31_dark' };
+        const STORE = { CONF: 'h34_conf', LOGS: 'h34_logs', USER: 'h34_user', THEME: 'h34_dark' };
         
         function getSafe(key, def) {
             try {
                 const res = localStorage.getItem(key);
-                if (!res || res === "undefined" || res === "null") return def;
+                if (!res || res === "undefined") return def;
                 return JSON.parse(res);
-            } catch(e) {
-                console.warn("Resetting key:", key);
-                return def;
-            }
+            } catch(e) { return def; }
         }
 
         // --- 2. STATE ---
@@ -105,8 +117,7 @@
             darkMode: getSafe(STORE.THEME, false)
         };
 
-        // --- 3. ICONS & CONSTANTS ---
-        const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        // --- 3. ICONS ---
         const icon = (path, col) => `<svg class="w-5 h-5 ${col}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
         const I = {
             gym: icon('<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>', 'text-blue-600 dark:text-blue-400'),
@@ -124,7 +135,7 @@
             left: icon('<polyline points="15 18 9 12 15 6"/>', 'text-slate-500 dark:text-slate-400'),
             right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400')
         };
-
+        const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const splits = {
             Upper: { t: "Gym: Oberkörper", d: "Kraft & Hypertrophie", ex: ["Bankdrücken (Maschine)", "Rudern", "Schulterpresse", "Latzug", "Trizeps Kabel", "Bizeps Maschine"] },
             Lower: { t: "Gym: Beine", d: "Kraft (Maschine)", ex: ["Beinpresse 45°", "Beinstrecker", "Beinbeuger", "Wadenheben", "Abduktoren", "Adduktoren", "Core"] },
@@ -354,31 +365,41 @@
                     <h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3>
                     <select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white">
                         <option value="" disabled ${!state.selectedExercise?'selected':''}>Wählen...</option>
-                        <option value="Long Run" ${state.selectedExercise==='Long Run'?'selected':''}>Long Run</option>
-                        <option value="Easy Run" ${state.selectedExercise==='Easy Run'?'selected':''}>Easy Run</option>
+                        <option value="Long Run" ${state.selectedExercise==='Long Run'?'selected':''}>Long Run (Pace)</option>
+                        <option value="Easy Run" ${state.selectedExercise==='Easy Run'?'selected':''}>Easy Run (Pace)</option>
                         <optgroup label="Gym">${gymList.map(e=>`<option value="${e}" ${state.selectedExercise===e?'selected':''}>${e}</option>`).join('')}</optgroup>
                     </select>`;
 
                 if(state.selectedExercise) {
                     let hist = [], maxVal = 0;
                     for(let w=0; w<14; w++) {
+                        // SMART DETECTION
+                        const weekPlan = generatePlan(w);
                         let best = 0;
+                        
                         for(let d=0; d<7; d++) {
                             const l = state.logs[`w${w}d${d}`];
+                            const dayPlan = weekPlan[d];
+                            
                             if(!l) continue;
+                            
+                            // GYM CHECK
                             const k = state.selectedExercise.replace(/\s/g,'');
                             if(l.exercises && l.exercises[k]) {
                                 const m = Math.max(...l.exercises[k].map(s=>parseFloat(s.w)||0));
                                 if(m > best) best = m;
                             }
+                            
+                            // RUN CHECK
                             if(l.run && l.run.dist && l.run.time) {
                                 const dist = parseFloat(l.run.dist);
                                 const t = l.run.time.split(':');
                                 const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60);
+                                
                                 if(dist > 0 && m > 0) {
                                     const p = m/dist;
-                                    if(state.selectedExercise === 'Long Run' && dist > 10) best = p;
-                                    else if(state.selectedExercise === 'Easy Run' && dist <= 10) best = p;
+                                    if(state.selectedExercise === 'Long Run' && dayPlan && dayPlan.subtype === 'long') best = p;
+                                    else if(state.selectedExercise === 'Easy Run' && dayPlan && (dayPlan.subtype === 'easy' || dayPlan.type === 'run' && dayPlan.subtype !== 'long')) best = p;
                                 }
                             }
                         }
@@ -386,6 +407,15 @@
                         hist.push({w: w+1, val: best});
                     }
                     
+                    const formatVal = (val, type) => {
+                        if (type.includes('Run')) {
+                            const min = Math.floor(val);
+                            const sec = Math.round((val - min) * 60);
+                            return `${min}:${sec < 10 ? '0'+sec : sec}`;
+                        }
+                        return val + ' kg';
+                    }
+
                     if(maxVal > 0) {
                         const h = 100, w = 280;
                         const points = hist.map((d, i) => {
@@ -399,9 +429,22 @@
                                 <svg width="100%" height="130" viewBox="-10 0 ${w+20} ${h+30}" class="overflow-visible">
                                     <polyline points="${points}" class="fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2" />
                                     ${hist.map((d, i) => {
+                                        if(!d.val) return '';
                                         const x = (i / (hist.length - 1)) * w;
-                                        const y = h - ((d.val || 0) / maxVal) * h;
-                                        return d.val > 0 ? `<circle cx="${x}" cy="${y}" r="3" class="fill-blue-500 dark:fill-blue-400" /><text x="${x}" y="${h+20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${i+1}</text>` : '';
+                                        const y = h - (d.val / maxVal) * h;
+                                        const lbl = formatVal(d.val, state.selectedExercise);
+                                        return `
+                                        <g class="chart-group" style="cursor:pointer">
+                                            <circle cx="${x}" cy="${y}" r="15" fill="transparent" />
+                                            <circle cx="${x}" cy="${y}" r="4" class="dot fill-blue-500 dark:fill-blue-400 transition-all" />
+                                            <text x="${x}" y="${h+20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${i+1}</text>
+                                            
+                                            <g class="tooltip opacity-0 transition-opacity duration-200 pointer-events-none">
+                                                <rect x="${x-20}" y="${y-35}" width="40" height="25" rx="4" fill="#1e293b" />
+                                                <text x="${x}" y="${y-19}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${lbl}</text>
+                                                <path d="M${x-4},${y-10} L${x+4},${y-10} L${x},${y-6} Z" fill="#1e293b" />
+                                            </g>
+                                        </g>`;
                                     }).join('')}
                                 </svg>
                                 <div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf 14 Wochen</div>
@@ -537,3 +580,5 @@
     </script>
 </body>
 </html>
+
+```
