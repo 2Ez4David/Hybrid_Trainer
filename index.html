@@ -1,497 +1,601 @@
-<!DOCTYPE html>
-<html lang="de" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Athlete V22 (Dark Mode)</title>
+import React, { useState, useEffect, useMemo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Dumbbell, Footprints, Bike, Volleyball, Moon, Sun, ChevronLeft, ChevronRight, Settings, BarChart2, Save, Brain, Check, Info } from 'lucide-react';
+
+export default function HybridCoach() {
+  const [week, setWeek] = useState(0);
+  const [view, setView] = useState('plan'); // 'plan', 'stats'
+  const [statsSubView, setStatsSubView] = useState('overview'); // 'overview', 'details'
+  const [selectedExercise, setSelectedExercise] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // --- CONFIG ---
+  const [configs, setConfigs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hybrid_conf_v26')) || Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); } 
+    catch { return Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] })); }
+  });
+  
+  const [logs, setLogs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hybrid_logs_v26')) || {}; } 
+    catch { return {}; }
+  });
+
+  const [userSettings, setUserSettings] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hybrid_user_v26')) || { maxHR: 190 }; }
+    catch { return { maxHR: 190 }; }
+  });
+
+  // Persistence
+  useEffect(() => localStorage.setItem('hybrid_conf_v26', JSON.stringify(configs)), [configs]);
+  useEffect(() => localStorage.setItem('hybrid_logs_v26', JSON.stringify(logs)), [logs]);
+  useEffect(() => localStorage.setItem('hybrid_user_v26', JSON.stringify(userSettings)), [userSettings]);
+  
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [darkMode]);
+
+  // --- CONSTANTS ---
+  const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  
+  const splits = {
+    Upper: { t: "Gym: Oberkörper", d: "Kraft & Hypertrophie", ex: ["Bankdrücken (Maschine)", "Rudern", "Schulterpresse", "Latzug", "Trizeps", "Bizeps"] },
+    Lower: { t: "Gym: Beine", d: "Kraft (Maschine)", ex: ["Beinpresse", "Beinstrecker", "Beinbeuger", "Wadenheben", "Abduktoren", "Core"] },
+    Push: { t: "Gym: Push", d: "Brust/Schulter/Trizeps", ex: ["Brustpresse", "Schulterpresse", "Seitheben", "Trizepsdrücken", "Butterfly"] },
+    Pull: { t: "Gym: Pull", d: "Rücken/Bizeps", ex: ["Latzug", "Rudern", "Face Pulls", "Bizeps Curls", "Butterfly Reverse"] },
+    Legs: { t: "Gym: Beine", d: "Unterkörper Fokus", ex: ["Beinpresse", "Ausfallschritte", "Beinstrecker", "Beinbeuger", "Waden"] },
+    Full: { t: "Gym: Ganzkörper", d: "Erhalt & Maschinen", ex: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse", "Rückenstrecker"] }
+  };
+
+  // --- LOGIC: PHASE INFO ---
+  const getPhaseDetails = (w) => {
+    if (w < 5) return { title: "Base Phase", focus: "Grundlagenausdauer & Gewöhnung", color: "blue" };
+    if (w < 10) return { title: "Build Phase", focus: "Steigerung von Volumen & Intensität", color: "indigo" };
+    if (w < 12) return { title: "Peak Phase", focus: "Maximale Belastung vor dem Rennen", color: "purple" };
+    if (w === 12) return { title: "Taper Phase", focus: "Erholung & Speicher füllen", color: "green" };
+    return { title: "Race Week", focus: "Minimale Belastung. Race Day!", color: "orange" };
+  };
+
+  const currentPhase = getPhaseDetails(week);
+
+  // --- LOGIC: ADAPTATION ---
+  const adaptFactor = useMemo(() => {
+    if (week === 0) return 1.0;
+    let rpeSum = 0, bpmSum = 0, count = 0;
     
-    <style>
-        /* Smooth Transitions für Dark Mode */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: background-color 0.3s, color 0.3s; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        button { user-select: none; }
+    Object.keys(logs).forEach(k => {
+      if (k.startsWith(`w${week-1}`) && logs[k].run) {
+        if (logs[k].run.rpe) rpeSum += parseInt(logs[k].run.rpe);
+        if (logs[k].run.bpm) bpmSum += parseInt(logs[k].run.bpm);
+        count++;
+      }
+    });
+
+    if (count === 0) return 1.0;
+    const avgRPE = rpeSum / count;
+    const avgBPM = bpmSum > 0 ? bpmSum / count : 0;
+    const maxHR = parseInt(userSettings.maxHR) || 190;
+    
+    if (avgBPM > (maxHR * 0.78)) return 0.9; 
+    if (avgRPE > 8) return 0.9;
+    if (avgRPE < 4) return 1.1;
+
+    return 1.0;
+  }, [week, logs, userSettings.maxHR]);
+
+  // --- LOGIC: PLAN GENERATION ---
+  const generatePlan = (wIdx) => {
+    const cfg = configs[wIdx] || { uni: [], vol: true, bike: [] };
+    const days = Array(7).fill(null);
+    const factor = adaptFactor;
+
+    // 1. Volleyball
+    if (cfg.vol) days[1] = { type: 'vol', title: "Volleyball", desc: "HIIT Ersatz & Sprungkraft", id: `w${wIdx}d1` };
+
+    // 2. Long Run (14 Weeks Logic)
+    let lrDist;
+    let lrTitle = "Long Run";
+    let lrDesc = "Zone 2. Pace egal.";
+
+    if (wIdx === 13) { 
+        lrDist = 21.1; lrTitle = "HALBMARATHON"; lrDesc = "Viel Erfolg! Du hast es geschafft.";
+    } 
+    else if (wIdx === 12) {
+        lrDist = 10.0; lrTitle = "Taper Run"; lrDesc = "Erholung. Beine frisch machen.";
+    }
+    else if (wIdx === 11) {
+        lrDist = 18.0; 
+    }
+    else {
+        const raw = 7 + (wIdx * 1.0);
+        lrDist = Math.min(raw, 17.0);
+    }
+    
+    if (wIdx < 12) lrDist = (lrDist * factor).toFixed(1);
+    else if (wIdx !== 13) lrDist = lrDist.toFixed(1);
+
+    const lr = { type: 'run', subtype: 'long', title: wIdx === 13 ? lrTitle : `${lrTitle} (${lrDist} km)`, desc: lrDesc };
+    
+    // Place Sunday (preferred) or Saturday
+    if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` };
+    else if (!days[5]) days[5] = { ...lr, id: `w${wIdx}d5` };
+
+    // 3. Gym Placement
+    const availGym = cfg.uni.filter(d => days[weekDays.indexOf(d)] === null);
+    const gymCount = availGym.length >= 3 ? 3 : 2;
+    let placed = 0;
+    
+    availGym.forEach(d => {
+      if (placed >= gymCount) return;
+      const idx = weekDays.indexOf(d);
+      let wo = splits.Full;
+      if (gymCount === 2) wo = (placed === 0) ? splits.Upper : splits.Lower;
+      if (gymCount === 3) wo = [splits.Push, splits.Pull, splits.Legs][placed];
+      
+      if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Erhalt (Leicht)", desc: "Nur Bewegung, keine Ermüdung." };
+
+      days[idx] = { type: 'gym', ...wo, id: `w${wIdx}d${idx}` };
+      placed++;
+    });
+
+    // 4. Run Filling
+    let needed = (cfg.vol ? 2 : 3) - 1; 
+    if (wIdx === 13) needed = 1;
+
+    const score = (i) => {
+      if (days[i]) return -99;
+      let s = 10;
+      if (days[i-1]?.type?.match(/run|vol/)) s -= 5;
+      if (days[i+1]?.type?.match(/run|vol/)) s -= 5;
+      if (days[i-1]?.type === 'gym' && days[i-1].t.includes('Beine')) s -= 3;
+      return s;
+    };
+
+    while (needed > 0) {
+      let best = -1, max = -99;
+      for (let i=0; i<7; i++) { const s = score(i); if(s>max) { max=s; best=i; } }
+      if (best === -1) break;
+      
+      let baseDist = Math.min(5 + wIdx * 0.5, 9);
+      if (wIdx === 12) baseDist = 5; // Taper
+      if (wIdx === 13) baseDist = 3; // Shakeout
+
+      const dist = (baseDist * factor).toFixed(1);
+      let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: wIdx === 13 ? "Shakeout Run" : "Locker." };
+      
+      if (cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio (Gelenkschonend)" };
+      
+      days[best] = { ...wo, id: `w${wIdx}d${best}` };
+      needed--;
+    }
+
+    // 5. Rest
+    for(let i=0; i<7; i++) if(!days[i]) days[i] = { type: 'rest', title: "Recovery", id: `w${wIdx}d${i}` };
+    
+    return days.map(d => ({ 
+        ...d, 
+        title: d.title || d.t,
+        desc: d.desc || d.d,
+        exercises: d.exercises || d.ex,
+        done: logs[d.id]?.done 
+    }));
+  };
+
+  const days = generatePlan(week);
+
+  // --- STATS DATA HELPERS ---
+  const getAllExercises = () => {
+    const gymSet = new Set();
+    Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e)));
+    return {
+        gym: Array.from(gymSet).sort(),
+        run: ["Long Run", "Easy Run"]
+    };
+  };
+
+  const getExerciseData = (exName) => {
+    const data = [];
+    for(let w=0; w<14; w++) {
+        let bestVal = 0;
+        let found = false;
         
-        /* Loading Screen */
-        #loader { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; transition: opacity 0.5s; }
-        html.dark #loader { background: #0f172a; color: #fff; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; flex-shrink: 0; }
-        html.dark .spinner { border-color: #334155; border-top-color: #60a5fa; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* iOS Help Box */
-        #ios-help { margin-top: 30px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; color: #334155; max-width: 320px; font-size: 14px; line-height: 1.6; text-align: left; }
-        html.dark #ios-help { background: #1e293b; border-color: #334155; color: #cbd5e1; }
-        
-        .bar-grow { animation: growUp 1s ease-out forwards; transform-origin: bottom; transform: scaleY(0); }
-        @keyframes growUp { to { transform: scaleY(1); } }
-    </style>
+        for(let d=0; d<7; d++) {
+            const id = `w${w}d${d}`;
+            const log = logs[id];
+            if(!log) continue;
 
-    <!-- Tailwind Config für Dark Mode -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'class' };
-    </script>
-
-    <!-- React Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" crossorigin></script>
-</head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-
-    <div id="loader">
-        <div class="spinner"></div>
-        <h2 style="font-weight:bold; margin-bottom:5px;">Lade V22...</h2>
-        <div id="ios-help">
-            <strong>iPhone / iPad Hilfe:</strong><br><br>
-            Falls der Bildschirm weiß bleibt:<br>
-            1. Tippe auf "Teilen" (Pfeil-Symbol).<br>
-            2. Wähle "In Safari öffnen" oder Chrome.<br>
-            <em>(Dateivorschau blockiert oft Skripte)</em>
-        </div>
-    </div>
-
-    <div id="root"></div>
-
-    <script type="text/babel">
-        try {
-            // Loader ausblenden
-            const loader = document.getElementById('loader');
+            const exKey = exName.replace(/\s/g,'');
             
-            const { useState, useEffect, useMemo } = React;
+            if(log.exercises && log.exercises[exKey]) {
+                const maxW = Math.max(...log.exercises[exKey].map(s => parseFloat(s.w) || 0));
+                if(maxW > bestVal) bestVal = maxW;
+                found = true;
+            }
 
-            // --- STORAGE ---
-            const safeLoad = (key, def) => { 
-                try { 
-                    const item = localStorage.getItem(key);
-                    return item ? JSON.parse(item) : def; 
-                } catch (e) { return def; } 
-            };
-            const safeSave = (key, val) => { 
-                try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} 
-            };
+            if(log.run && log.run.dist && log.run.time) {
+                const dist = parseFloat(log.run.dist);
+                const timeParts = log.run.time.split(':');
+                const mins = parseFloat(timeParts[0]) + (parseFloat(timeParts[1]||0)/60);
+                if(dist > 0 && mins > 0) {
+                    const pace = mins / dist;
+                    if(exName === "Long Run" && dist > 10) { bestVal = pace; found = true; }
+                    else if(exName === "Easy Run" && dist <= 10) { bestVal = pace; found = true; }
+                }
+            }
+        }
+        if(found) data.push({ name: `W${w+1}`, value: bestVal });
+    }
+    return data;
+  };
 
-            // --- ICONS ---
-            const SVG = ({c, path}) => <svg className={c} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{path}</svg>;
-            const Icons = {
-                Gym: () => <SVG c="text-blue-600 dark:text-blue-400" path={<><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></>} />,
-                Run: () => <SVG c="text-orange-500 dark:text-orange-400" path={<><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 11 8c0 2.85-1.67 5.71-2 8a7 7 0 0 0 2 5.18V22H5a2 2 0 0 1-2-2v-4"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 13 7.8 13 12c0 2.85 1.67 5.71 2 8a7 7 0 0 0-2 5.18V26h6a2 2 0 0 0 2-2v-4"/></>} />,
-                Bike: () => <SVG c="text-teal-600 dark:text-teal-400" path={<><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h-5"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></>} />,
-                Volleyball: () => <SVG c="text-pink-600 dark:text-pink-400" path={<><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/></>} />,
-                Rest: () => <SVG c="text-slate-400 dark:text-slate-600" path={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>} />,
-                Check: () => <SVG c="text-white" path={<polyline points="20 6 9 17 4 12"/>} />,
-                Left: () => <SVG c="text-slate-600 dark:text-slate-300" path={<polyline points="15 18 9 12 15 6"/>} />,
-                Right: () => <SVG c="text-slate-600 dark:text-slate-300" path={<polyline points="9 18 15 12 9 6"/>} />,
-                Close: () => <SVG c="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white" path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />,
-                Save: () => <SVG c="text-white" path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>} />,
-                Chart: () => <SVG c="text-slate-600 dark:text-slate-300" path={<><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></>} />,
-                Brain: () => <SVG c="text-indigo-600 dark:text-indigo-400" path={<><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></>} />,
-                Search: () => <SVG c="text-slate-400 dark:text-slate-500" path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
-                Heart: () => <SVG c="text-red-500" path={<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />} />,
-                Sun: () => <SVG c="text-amber-500" path={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></>} />,
-                Moon: () => <SVG c="text-slate-400" path={<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>} />
-            };
+  const getTotalStats = () => {
+    const data = [];
+    for(let w=0; w<=week; w++) {
+        let vol = 0; let dist = 0;
+        Object.keys(logs).forEach(key => {
+            if (key.startsWith(`w${w}d`)) {
+                const log = logs[key];
+                if(log.exercises) Object.values(log.exercises).forEach(sets => sets.forEach(s => vol += (parseInt(s.w)||0) * (parseInt(s.r)||0)));
+                if(log.run && log.run.dist) dist += parseFloat(log.run.dist);
+            }
+        });
+        data.push({ name: `W${w+1}`, vol, dist });
+    }
+    return data;
+  };
 
-            const App = () => {
-                useEffect(() => { if(loader) loader.style.display = 'none'; }, []);
+  // --- TOGGLES ---
+  const toggleUni = (d) => {
+    const n = [...configs];
+    const list = n[week].uni;
+    if (list.includes(d)) n[week].uni = list.filter(x => x !== d); else n[week].uni.push(d);
+    setConfigs(n);
+  };
 
-                const [week, setWeek] = useState(0);
-                const [selDay, setSelDay] = useState(null);
-                const [editMode, setEditMode] = useState(false);
-                const [view, setView] = useState('plan'); 
-                const [statsSubView, setStatsSubView] = useState('overview');
-                const [selectedExercise, setSelectedExercise] = useState(null);
+  const toggleBike = (id) => {
+    const n = [...configs];
+    const list = n[week].bike;
+    if(list.includes(id)) n[week].bike = list.filter(x => x !== id); else n[week].bike.push(id);
+    setConfigs(n);
+    setSelectedDay(null); // Close modal
+  };
 
-                // Settings & Dark Mode
-                const [darkMode, setDarkMode] = useState(() => safeLoad('hybridV22_dark', false));
-                const [userSettings, setUserSettings] = useState(() => safeLoad('hybridV22_user', { maxHR: 190 })); 
-                const [configs, setConfigs] = useState(() => safeLoad('hybridV22_conf', Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] }))));
-                const [logs, setLogs] = useState(() => safeLoad('hybridV22_logs', {}));
+  // --- UI RENDER ---
+  return (
+    <div className={`min-h-screen pb-20 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} font-sans transition-colors duration-300`}>
+      <div className="max-w-md mx-auto p-4">
+        
+        {/* HEADER */}
+        <div className={`flex justify-between items-center mb-4 p-4 rounded-xl shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div>
+            <h1 className="text-xl font-bold">Hybrid V26</h1>
+            <div className="text-xs opacity-60">14 Wochen Coach</div>
+          </div>
+          <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-full ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </div>
 
-                useEffect(() => safeSave('hybridV22_dark', darkMode), [darkMode]);
-                useEffect(() => safeSave('hybridV22_user', userSettings), [userSettings]);
-                useEffect(() => safeSave('hybridV22_conf', configs), [configs]);
-                useEffect(() => safeSave('hybridV22_logs', logs), [logs]);
+        {/* PHASE INFO BOX */}
+        <div className={`mb-6 p-4 rounded-xl shadow-sm border flex items-start gap-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className={`p-2 rounded-full ${darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                <Info size={20} />
+            </div>
+            <div>
+                <h3 className={`font-bold text-sm mb-1 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {currentPhase.title}: Woche {week + 1}
+                </h3>
+                <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {currentPhase.focus}
+                </p>
+            </div>
+        </div>
 
-                // Apply Dark Mode Class
-                useEffect(() => {
-                    if (darkMode) document.documentElement.classList.add('dark');
-                    else document.documentElement.classList.remove('dark');
-                }, [darkMode]);
+        {/* NAVIGATION */}
+        <div className="flex justify-between items-center mb-6">
+            <div className={`flex items-center gap-2 p-2 rounded-lg border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <button onClick={() => setWeek(Math.max(0, week - 1))} className="p-1"><ChevronLeft /></button>
+                <span className="text-sm font-bold w-12 text-center">W{week + 1}</span>
+                <button onClick={() => setWeek(Math.min(13, week + 1))} className="p-1"><ChevronRight /></button>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => setShowSetup(true)} className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 ${darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'}`}>
+                    <Settings size={14} /> Setup
+                </button>
+                <button onClick={() => setView(view === 'plan' ? 'stats' : 'plan')} className={`px-3 py-2 rounded-lg text-xs font-bold border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <BarChart2 size={16} />
+                </button>
+            </div>
+        </div>
 
-                const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        {/* MAIN CONTENT */}
+        {view === 'plan' ? (
+            <div className="space-y-3 fade-in">
+                {adaptFactor !== 1.0 && (
+                    <div className={`mb-4 p-3 rounded-xl text-xs font-bold border flex items-center gap-2 ${darkMode ? 'bg-indigo-900/30 text-indigo-300 border-indigo-900' : 'bg-indigo-50 text-indigo-800 border-indigo-100'}`}>
+                        <Brain size={16} /> AI: {adaptFactor > 1 ? '+10% Volumen' : '-10% Volumen'}
+                    </div>
+                )}
 
-                // --- SPLITS (Texte angepasst) ---
-                const splits = {
-                    Upper: { title: "Gym: Oberkörper", desc: "Brust, Rücken, Schultern, Arme.", exercises: ["Bankdrück-Maschine", "Ruder-Maschine", "Schulterpresse", "Latzug", "Trizeps Kabel", "Bizeps Maschine"] },
-                    Lower: { title: "Gym: Beine", desc: "Fokus Kraft & Stabilität.", exercises: ["Beinpresse 45°", "Beinstrecker", "Beinbeuger", "Wadenheben", "Abduktoren", "Adduktoren", "Core"] },
-                    Push: { title: "Gym: Push", desc: "Brust, Schulter, Trizeps.", exercises: ["Brustpresse", "Schulterpresse", "Seitheben", "Trizepsdrücken"] },
-                    Pull: { title: "Gym: Pull", desc: "Rücken, Bizeps.", exercises: ["Latzug", "Rudern", "Face Pulls", "Bizeps Curls"] },
-                    Legs: { title: "Gym: Beine", desc: "Unterkörper Fokus.", exercises: ["Beinpresse", "Ausfallschritte", "Beinstrecker", "Beinbeuger", "Waden"] },
-                    Full: { title: "Gym: Ganzkörper", desc: "Alle Muskelgruppen.", exercises: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse"] }
-                };
-
-                const adaptFactor = useMemo(() => {
-                    if (week === 0) return 1.0;
-                    let sum = 0, cnt = 0;
-                    Object.keys(logs).forEach(k => {
-                        if (k.startsWith(`w${week-1}`) && logs[k].run?.rpe) { sum += parseInt(logs[k].run.rpe); cnt++; }
-                    });
-                    return cnt ? (sum/cnt > 8 ? 0.9 : sum/cnt < 4 ? 1.1 : 1.0) : 1.0;
-                }, [week, logs]);
-
-                // --- STATS LOGIC ---
-                const getAllExercises = () => {
-                    const gymSet = new Set();
-                    Object.values(splits).forEach(s => s.exercises.forEach(e => gymSet.add(e)));
-                    return { gym: Array.from(gymSet).sort(), run: ["Long Run", "Easy Run", "Intervalle"] };
-                };
-
-                const getExerciseHistory = (exName) => {
-                    const data = [];
-                    for(let w=0; w<14; w++) {
-                        let bestVal = 0;
-                        let found = false;
-                        for(let d=0; d<7; d++) {
-                            const id = `w${w}d${d}`;
-                            const log = logs[id];
-                            if(!log) continue;
-                            const exKey = exName.replace(/\s/g,'');
-                            if(log.exercises && log.exercises[exKey]) {
-                                const maxW = Math.max(...log.exercises[exKey].map(s => parseFloat(s.w) || 0));
-                                if(maxW > bestVal) bestVal = maxW;
-                                found = true;
-                            }
-                            if(log.run && log.run.dist && log.run.time) {
-                                const dist = parseFloat(log.run.dist);
-                                const timeParts = log.run.time.split(':');
-                                const mins = parseFloat(timeParts[0]) + (parseFloat(timeParts[1]||0)/60);
-                                if(dist > 0 && mins > 0) {
-                                    const pace = mins / dist;
-                                    if(exName === "Long Run" && dist > 10) { bestVal = pace; found = true; }
-                                    else if(exName === "Easy Run" && dist <= 10) { bestVal = pace; found = true; }
-                                    else if(exName === "Intervalle" && dist < 6) { bestVal = pace; found = true; }
-                                }
-                            }
-                        }
-                        if(found) data.push({ w: w+1, val: bestVal });
-                    }
-                    return data;
-                };
-
-                const getStats = () => {
-                    const data = [];
-                    for(let w=0; w<=week; w++) {
-                        let vol = 0; let dist = 0;
-                        Object.keys(logs).forEach(key => {
-                            if (key.startsWith(`w${w}d`)) {
-                                const log = logs[key];
-                                if(log.exercises) Object.values(log.exercises).forEach(sets => sets.forEach(s => vol += (parseInt(s.w)||0) * (parseInt(s.r)||0)));
-                                if(log.run && log.run.dist) dist += parseFloat(log.run.dist);
-                            }
-                        });
-                        data.push({ w: w+1, vol, dist });
-                    }
-                    return data;
-                };
-
-                // --- PLAN GENERATOR ---
-                const getPhaseName = (w) => {
-                    if (w < 5) return "Base Phase"; 
-                    if (w < 10) return "Build Phase"; 
-                    if (w < 12) return "Peak Phase"; 
-                    if (w === 12) return "Taper Phase"; 
-                    return "Race Week"; 
-                };
-
-                const genDays = (wIdx) => {
-                    const cfg = configs[wIdx] || { uni: [], vol: true, bike: [] };
-                    const d = Array(7).fill(null);
-
-                    if (cfg.vol) d[1] = { type: 'vol', title: "Volleyball", desc: "HIIT Ersatz.", id: `w${wIdx}d1` };
-
-                    let lrDist;
-                    let lrTitle = "Long Run";
-                    let lrDesc = "Zone 2. Pace egal.";
-
-                    if (wIdx === 13) { lrDist = 21.1; lrTitle = "HALBMARATHON"; lrDesc = "Viel Erfolg!"; } 
-                    else if (wIdx === 12) { lrDist = 12.0; lrTitle = "Taper Run"; lrDesc = "Erholung."; }
-                    else if (wIdx === 11) { lrDist = 19.0; }
-                    else if (wIdx === 10) { lrDist = 17.5; }
-                    else { const raw = 6 + (wIdx * 1.1); lrDist = Math.min(raw, 16.5); }
-                    
-                    if (wIdx < 12) { lrDist = (lrDist * adaptFactor).toFixed(1); } else if (wIdx !== 13) { lrDist = lrDist.toFixed(1); }
-
-                    const lr = { type: 'run', subtype: 'long', title: wIdx === 13 ? lrTitle : `${lrTitle} (${lrDist} km)`, desc: lrDesc };
-                    
-                    if (!d[6]) d[6] = { ...lr, id: `w${wIdx}d6` };
-                    else if (!d[5]) d[5] = { ...lr, id: `w${wIdx}d5` };
-
-                    const availGym = cfg.uni.filter(ud => d[weekDays.indexOf(ud)] === null);
-                    const gymCount = availGym.length >= 3 ? 3 : 2;
-                    let placed = 0;
-
-                    availGym.forEach(ud => {
-                        if (placed >= gymCount) return;
-                        const i = weekDays.indexOf(ud);
-                        let wo = splits.Full;
-                        if (gymCount === 2) wo = (placed === 0) ? splits.Upper : splits.Lower;
-                        if (gymCount === 3) wo = [splits.Push, splits.Pull, splits.Legs][placed];
-                        if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Erhalt (Leicht)", desc: "Nur Bewegung." };
-
-                        d[i] = { type: 'gym', ...wo, id: `w${wIdx}d${i}` };
-                        placed++;
-                    });
-
-                    let runsNeeded = (cfg.vol ? 2 : 3) - 1; 
-                    if (wIdx === 13) runsNeeded = 1; 
-
-                    const score = (i) => {
-                        if (d[i]) return -99;
-                        let s = 10;
-                        if (d[i-1]?.type === 'run' || d[i-1]?.type === 'vol') s -= 5;
-                        if (d[i+1]?.type === 'run' || d[i+1]?.type === 'vol') s -= 5;
-                        if (d[i-1]?.type === 'gym' && d[i-1].title.includes('Beine')) s -= 3;
-                        return s;
-                    };
-
-                    while (runsNeeded > 0) {
-                        let bestI = -1, maxS = -99;
-                        for (let i=0; i<7; i++) { const s = score(i); if(s > maxS) { maxS = s; bestI = i; } }
-                        if (bestI === -1) break;
-                        
-                        let baseDist = Math.min(5 + wIdx * 0.5, 9);
-                        if (wIdx === 12) baseDist = 6;
-                        if (wIdx === 13) baseDist = 4; 
-
-                        const dist = (baseDist * adaptFactor).toFixed(1);
-                        let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: wIdx === 13 ? "Shakeout" : "Locker." };
-                        
-                        if (cfg.bike.includes(`w${wIdx}d${bestI}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio." };
-                        d[bestI] = { ...wo, id: `w${wIdx}d${bestI}` };
-                        runsNeeded--;
-                    }
-
-                    for (let i=0; i<7; i++) if (!d[i]) d[i] = { type: 'rest', title: "Recovery", id: `w${wIdx}d${i}` };
-                    return d.map(x => ({ ...x, done: logs[x.id]?.done }));
-                };
-
-                const days = genDays(week);
-
-                // --- COMPONENTS ---
-                const GymLogger = ({ exercise, dayId, logs }) => {
-                    const exKey = exercise.replace(/\s/g, '');
-                    const history = Object.keys(logs).filter(k => k!==dayId && logs[k]?.exercises?.[exKey]).sort().reverse()[0];
-                    const lastLog = history ? logs[history].exercises[exKey] : null;
-                    const [sets, setSets] = useState(logs[dayId]?.exercises?.[exKey] || [{w:'',r:''}, {w:'',r:''}, {w:'',r:''}]);
-                    const update = (i, f, v) => {
-                        const n = [...sets]; n[i][f] = v; setSets(n);
-                        const el = document.getElementById(`data-${exKey}`); if(el) el.dataset.val = JSON.stringify(n);
-                    };
-                    return (
-                        <div className="mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-                            <div className="font-bold text-sm mb-2 flex justify-between dark:text-slate-200">{exercise} {lastLog && <span className="text-xs text-blue-500 font-normal bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 px-2 rounded">Last: {lastLog[0].w}kg</span>}</div>
-                            {sets.map((s, i) => (
-                                <div key={i} className="flex gap-2 mb-2">
-                                    <input type="number" placeholder="kg" className="w-12 border dark:border-slate-700 rounded text-center text-xs p-1 dark:bg-slate-900 dark:text-white" value={s.w} onChange={e=>update(i,'w',e.target.value)} />
-                                    <input type="number" placeholder="rep" className="w-10 border dark:border-slate-700 rounded text-center text-xs p-1 dark:bg-slate-900 dark:text-white" value={s.r} onChange={e=>update(i,'r',e.target.value)} />
-                                    <span className="text-xs text-slate-400 self-center">Satz {i+1}</span>
-                                </div>
-                            ))}
-                            <span id={`data-${exKey}`} style={{display:'none'}} data-exercise={exKey} data-val={JSON.stringify(sets)}></span>
+                {days.map((day, i) => (
+                    <div 
+                        key={i} 
+                        onClick={() => setSelectedDay(day)}
+                        className={`
+                            flex items-center p-3 rounded-xl border shadow-sm cursor-pointer transition-all active:scale-[0.98]
+                            ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}
+                            ${day.type === 'gym' ? 'border-l-4 border-l-blue-500' : ''}
+                            ${day.type === 'run' ? 'border-l-4 border-l-orange-500' : ''}
+                            ${day.type === 'vol' ? 'border-l-4 border-l-pink-500' : ''}
+                            ${day.type === 'bike' ? 'border-l-4 border-l-teal-500' : ''}
+                            ${day.done ? (darkMode ? 'bg-green-900/20' : 'bg-green-50') : ''}
+                        `}
+                    >
+                        <div className="w-12 text-xs font-bold opacity-50 uppercase">{weekDays[i].substr(0, 2)}</div>
+                        <div className="flex-1">
+                            <div className="font-bold text-sm">{day.title}</div>
+                            {day.type !== 'rest' && <div className="text-xs opacity-60">{day.desc}</div>}
                         </div>
-                    );
-                };
-
-                const TrackerModal = ({ day, onClose }) => {
-                    const [runData, setRunData] = useState(logs[day.id]?.runData || { time: '', dist: '', rpe: '5', bpm: '', comments: '' });
-                    const handleSave = () => {
-                        let dataToSave = {};
-                        if (day.type === 'gym') {
-                            const inputs = document.querySelectorAll('span[data-exercise]');
-                            const exerciseLogs = {};
-                            inputs.forEach(input => exerciseLogs[input.dataset.exercise] = JSON.parse(input.dataset.val));
-                            dataToSave = { exercises: exerciseLogs };
-                        } else { dataToSave = { runData }; }
-                        setLogs(prev => ({ ...prev, [day.id]: { ...prev[day.id], ...dataToSave, completed: true } }));
-                        onClose();
-                    };
-
-                    return (
-                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 fade-in" onClick={onClose}>
-                            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                                <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 flex justify-between">
-                                    <h3 className="font-bold">{day.title}</h3>
-                                    <button onClick={onClose}><Icons.Close /></button>
-                                </div>
-                                <div className="p-6 overflow-y-auto" style={{WebkitOverflowScrolling: 'touch'}}>
-                                    {day.type === 'gym' ? (
-                                        day.exercises.map((ex, i) => <GymLogger key={i} exercise={ex} dayId={day.id} logs={logs} />)
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div><label className="text-xs font-bold text-slate-400">Zeit</label><input className="w-full p-2 border dark:border-slate-700 rounded dark:bg-slate-800 dark:text-white" value={runData.time} onChange={e=>setRunData({...runData, time:e.target.value})} placeholder="45:00"/></div>
-                                                <div><label className="text-xs font-bold text-slate-400">km</label><input type="number" className="w-full p-2 border dark:border-slate-700 rounded dark:bg-slate-800 dark:text-white" value={runData.dist} onChange={e=>setRunData({...runData, dist:e.target.value})} placeholder="5.0"/></div>
-                                            </div>
-                                            <div><label className="text-xs font-bold text-slate-400 flex gap-1 items-center"><Icons.Heart /> Ø BPM</label><input type="number" className="w-full p-2 border dark:border-slate-700 rounded dark:bg-slate-800 dark:text-white" value={runData.bpm} onChange={e=>setRunData({...runData, bpm:e.target.value})} placeholder="145"/></div>
-                                            <div><label className="text-xs font-bold text-slate-400 flex justify-between">RPE (1-10) <span>{runData.rpe}</span></label><input type="range" min="1" max="10" className="w-full h-2 bg-slate-200 rounded-lg dark:bg-slate-700" value={runData.rpe} onChange={e=>setRunData({...runData, rpe:e.target.value})}/></div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-4 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900"><button onClick={handleSave} className="w-full bg-slate-900 dark:bg-blue-600 text-white py-3 rounded-xl font-bold flex justify-center gap-2"><Icons.Save /> Speichern</button></div>
-                            </div>
-                        </div>
-                    );
-                };
-
-                const ConfigModal = ({onClose}) => (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50 fade-in" onClick={onClose}>
-                        <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6" onClick={e=>e.stopPropagation()}>
-                            <h3 className="font-bold mb-4 dark:text-white">Setup Woche {week+1}</h3>
-                            <div className="mb-4">
-                                <label className="text-xs font-bold text-slate-400 block mb-2">UNI TAGE (Gym Prio)</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {weekDays.map(d => (
-                                        <button key={d} onClick={()=>{
-                                            const n=[...configs]; 
-                                            n[week].uni = n[week].uni.includes(d)?n[week].uni.filter(x=>x!==d):[...n[week].uni, d];
-                                            setConfigs(n);
-                                        }} className={`p-2 text-xs border rounded ${configs[week].uni.includes(d)?'bg-blue-600 text-white':'bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}>{d}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="mb-4">
-                                <label className="text-xs font-bold text-slate-400 block mb-1">Max HR (für AI)</label>
-                                <input type="number" className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value={userSettings.maxHR} onChange={e=>setUserSettings({...userSettings, maxHR:e.target.value})} />
-                            </div>
-                            <button onClick={()=>{const n=[...configs]; n[week].vol = !n[week].vol; setConfigs(n)}} className={`w-full p-3 border rounded text-xs font-bold mb-4 ${configs[week].vol?'bg-pink-50 border-pink-500 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300':'bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}>Volleyball (Di) {configs[week].vol?'AN':'AUS'}</button>
+                        <div className="text-slate-300">
+                            {day.done ? <div className="bg-green-500 text-white rounded-full p-1"><Check size={14} /></div> : 
+                             day.type === 'gym' ? <Dumbbell size={20} className="text-blue-500" /> :
+                             day.type === 'run' ? <Footprints size={20} className="text-orange-500" /> :
+                             day.type === 'bike' ? <Bike size={20} className="text-teal-500" /> :
+                             day.type === 'vol' ? <Volleyball size={20} className="text-pink-500" /> :
+                             <div className="w-2 h-2 bg-slate-300 rounded-full"></div>
+                            }
                         </div>
                     </div>
-                );
+                ))}
+            </div>
+        ) : (
+            <div className="fade-in space-y-6">
+                <div className="flex justify-between mb-4">
+                    <button onClick={() => setView('plan')} className="text-sm font-bold flex items-center gap-1 opacity-60"><ChevronLeft size={16}/> Zurück</button>
+                    <div className={`flex p-1 rounded-lg border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <button onClick={() => setStatsSubView('overview')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView === 'overview' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Übersicht</button>
+                        <button onClick={() => setStatsSubView('details')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView === 'details' ? (darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white') : 'opacity-60'}`}>Details</button>
+                    </div>
+                </div>
 
-                const StatsView = () => (
-                    <div className="fade-in">
-                        <div className="flex justify-between items-center mb-6">
-                            <button onClick={()=>setView('plan')} className="text-sm font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400"><Icons.Left /> Zurück</button>
-                            <div className="flex bg-white dark:bg-slate-900 p-1 rounded-lg border dark:border-slate-800">
-                                <button onClick={()=>setStatsSubView('overview')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView==='overview'?'bg-slate-900 text-white dark:bg-blue-600':'text-slate-500 dark:text-slate-400'}`}>Übersicht</button>
-                                <button onClick={()=>setStatsSubView('details')} className={`px-3 py-1 text-xs font-bold rounded ${statsSubView==='details'?'bg-slate-900 text-white dark:bg-blue-600':'text-slate-500 dark:text-slate-400'}`}>Detail</button>
+                {statsSubView === 'overview' ? (
+                    <div className="space-y-6">
+                        <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Dumbbell size={16}/> Gym Volumen (Last)</h3>
+                            <div className="h-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={getTotalStats()}>
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
+                                        <Bar dataKey="vol" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
+                        <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <h3 className="font-bold text-sm mb-4 flex gap-2"><Footprints size={16}/> Lauf Distanz (km)</h3>
+                            <div className="h-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={getTotalStats()}>
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
+                                        <Bar dataKey="dist" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <h3 className="font-bold text-sm mb-4">Übungs-Analyse</h3>
+                        <select 
+                            className={`w-full p-2 mb-4 rounded border text-sm ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+                            onChange={(e) => setSelectedExercise(e.target.value)}
+                            value={selectedExercise || ""}
+                        >
+                            <option value="" disabled>Wähle eine Übung...</option>
+                            <optgroup label="Laufen">
+                                {getAllExercises().run.map(e => <option key={e} value={e}>{e}</option>)}
+                            </optgroup>
+                            <optgroup label="Gym">
+                                {getAllExercises().gym.map(e => <option key={e} value={e}>{e}</option>)}
+                            </optgroup>
+                        </select>
+
+                        {selectedExercise && getExerciseData(selectedExercise).length > 0 ? (
+                            <div className="h-60 mt-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={getExerciseData(selectedExercise)}>
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis fontSize={10} tickLine={false} axisLine={false} width={30} />
+                                        <Tooltip contentStyle={{backgroundColor: darkMode ? '#1e293b' : '#fff', borderRadius: '8px', border: 'none'}} />
+                                        <Line type="monotone" dataKey="value" stroke={selectedExercise.includes('Run') ? '#f97316' : '#3b82f6'} strokeWidth={3} dot={{r: 4}} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                                <p className="text-center text-xs opacity-50 mt-2">
+                                    {selectedExercise.includes('Run') ? 'Pace (min/km)' : 'Max Gewicht (kg)'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 opacity-40 text-sm">Keine Daten verfügbar</div>
+                        )}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* --- MODALS --- */}
+        
+        {/* SETUP */}
+        {showSetup && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowSetup(false)}>
+                <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl ${darkMode ? 'bg-slate-900' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
+                    <h3 className="font-bold mb-4">Einstellungen W{week+1}</h3>
+                    <p className="text-xs opacity-60 mb-2">UNI TAGE (Gym Prio)</p>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                        {weekDays.map(d => (
+                            <button 
+                                key={d}
+                                onClick={() => toggleUni(d)}
+                                className={`p-2 text-xs border rounded transition-colors ${configs[week].uni.includes(d) ? 'bg-blue-600 text-white border-blue-600' : (darkMode ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-200 hover:bg-slate-50')}`}
+                            >
+                                {d}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mb-4">
+                        <label className="text-xs font-bold opacity-60 block mb-1">Max HR (für AI)</label>
+                        <input type="number" className={`w-full p-2 border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} value={userSettings.maxHR} onChange={e => setUserSettings({...userSettings, maxHR: e.target.value})} />
+                    </div>
+                    <button 
+                        onClick={() => { const n = [...configs]; n[week].vol = !n[week].vol; setConfigs(n); }}
+                        className={`w-full p-3 border rounded text-xs font-bold ${configs[week].vol ? 'bg-pink-50 border-pink-500 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : (darkMode ? 'border-slate-700' : 'border-slate-200')}`}
+                    >
+                        Volleyball (Di) {configs[week].vol ? 'AN' : 'AUS'}
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {/* DAY TRACKER */}
+        {selectedDay && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedDay(null)}>
+                <div className={`w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] ${darkMode ? 'bg-slate-900' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
+                    <div className={`p-4 text-white flex justify-between items-center ${darkMode ? 'bg-slate-950' : 'bg-slate-900'}`}>
+                        <h3 className="font-bold">{selectedDay.title}</h3>
+                        <button onClick={() => setSelectedDay(null)}>✕</button>
+                    </div>
+                    <div className="p-6 overflow-y-auto">
+                        <p className="text-sm opacity-60 mb-4">{selectedDay.desc}</p>
                         
-                        {statsSubView === 'overview' ? (
-                            getStats().length > 0 ? (
-                                <div className="space-y-6">
-                                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
-                                        <h3 className="font-bold mb-4 flex gap-2 text-sm dark:text-white"><Icons.Gym /> Gym Volumen (kg)</h3>
-                                        <div className="h-32 flex items-end gap-1">
-                                            {getStats().map((d, i) => {
-                                                const max = Math.max(...getStats().map(s=>s.vol), 1);
-                                                return <div key={i} className="flex-1 flex flex-col items-center"><div style={{height:`${(d.vol/max)*100}%`}} className="w-full bg-blue-500 rounded-t bar-grow min-h-[2px]"></div><div className="text-[9px] text-slate-400 mt-1">{d.w}</div></div>
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
-                                        <h3 className="font-bold mb-4 flex gap-2 text-sm dark:text-white"><Icons.Run /> Lauf Distanz (km)</h3>
-                                        <div className="h-32 flex items-end gap-1">
-                                            {getStats().map((d, i) => {
-                                                const max = Math.max(...getStats().map(s=>s.dist), 1);
-                                                return <div key={i} className="flex-1 flex flex-col items-center"><div style={{height:`${(d.dist/max)*100}%`}} className="w-full bg-orange-500 rounded-t bar-grow min-h-[2px]"></div><div className="text-[9px] text-slate-400 mt-1">{d.w}</div></div>
-                                            })}
-                                        </div>
+                        {/* Gym Inputs */}
+                        {selectedDay.type === 'gym' && selectedDay.exercises.map((ex, i) => {
+                            const key = ex.replace(/\s/g, '');
+                            const sets = logs[selectedDay.id]?.exercises?.[key] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
+                            return (
+                                <div key={i} className={`mb-3 pb-2 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                                    <div className="text-sm font-bold mb-1">{ex}</div>
+                                    <div className="flex gap-2">
+                                        {sets.map((s, idx) => (
+                                            <div key={idx} className="flex gap-1">
+                                                <input 
+                                                    type="number" placeholder="kg" 
+                                                    className={`w-12 p-1 text-center text-xs border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                                                    value={s.w}
+                                                    onChange={(e) => {
+                                                        const nLogs = {...logs};
+                                                        if(!nLogs[selectedDay.id]) nLogs[selectedDay.id] = { exercises: {} };
+                                                        if(!nLogs[selectedDay.id].exercises) nLogs[selectedDay.id].exercises = {};
+                                                        if(!nLogs[selectedDay.id].exercises[key]) nLogs[selectedDay.id].exercises[key] = [...sets];
+                                                        nLogs[selectedDay.id].exercises[key][idx].w = e.target.value;
+                                                        setLogs(nLogs);
+                                                    }}
+                                                />
+                                                <input 
+                                                    type="number" placeholder="rp" 
+                                                    className={`w-10 p-1 text-center text-xs border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                                                    value={s.r}
+                                                    onChange={(e) => {
+                                                        const nLogs = {...logs};
+                                                        if(!nLogs[selectedDay.id]) nLogs[selectedDay.id] = { exercises: {} };
+                                                        if(!nLogs[selectedDay.id].exercises) nLogs[selectedDay.id].exercises = {};
+                                                        if(!nLogs[selectedDay.id].exercises[key]) nLogs[selectedDay.id].exercises[key] = [...sets];
+                                                        nLogs[selectedDay.id].exercises[key][idx].r = e.target.value;
+                                                        setLogs(nLogs);
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            ) : <div className="p-10 text-center text-slate-400 text-sm">Noch keine Daten.</div>
-                        ) : (
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
-                                <h3 className="font-bold mb-2 text-sm dark:text-white">Wähle eine Übung</h3>
-                                <select 
-                                    className="w-full p-2 border dark:border-slate-700 rounded-lg text-sm mb-4 dark:bg-slate-800 dark:text-white"
-                                    onChange={(e) => setSelectedExercise(e.target.value)}
-                                    value={selectedExercise || ""}
-                                >
-                                    <option value="" disabled>Bitte wählen...</option>
-                                    <optgroup label="Laufen">{getAllExercises().run.map(e => <option key={e} value={e}>{e}</option>)}</optgroup>
-                                    <optgroup label="Gym">{getAllExercises().gym.map(e => <option key={e} value={e}>{e}</option>)}</optgroup>
-                                </select>
-                                {selectedExercise && getExerciseHistory(selectedExercise).length > 0 && (
-                                    <div className="h-40 flex items-end gap-2 border-b border-l border-slate-200 dark:border-slate-700 p-2 relative mt-4">
-                                        {getExerciseHistory(selectedExercise).map((d, i, arr) => {
-                                            const max = Math.max(...arr.map(a => a.val));
-                                            const min = Math.min(...arr.map(a => a.val)) * 0.8;
-                                            const height = ((d.val - min) / (max - min || 1)) * 80 + 10;
-                                            return <div key={i} className="flex-1 flex flex-col items-center"><div style={{height: `${height}%`}} className="w-full bg-slate-800 dark:bg-slate-200 rounded-t bar-grow min-h-[4px]"></div><div className="text-[9px] text-slate-400 mt-1">W{d.w}</div></div>
-                                        })}
+                            );
+                        })}
+
+                        {/* Run Inputs */}
+                        {selectedDay.type !== 'rest' && selectedDay.type !== 'gym' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs opacity-60">Zeit</label>
+                                        <input 
+                                            className={`w-full p-2 border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} 
+                                            placeholder="45:00"
+                                            value={logs[selectedDay.id]?.run?.time || ''}
+                                            onChange={(e) => {
+                                                const n = {...logs}; if(!n[selectedDay.id]) n[selectedDay.id]={run:{}}; if(!n[selectedDay.id].run) n[selectedDay.id].run={};
+                                                n[selectedDay.id].run.time = e.target.value; setLogs(n);
+                                            }}
+                                        />
                                     </div>
+                                    <div>
+                                        <label className="text-xs opacity-60">km</label>
+                                        <input 
+                                            type="number" 
+                                            className={`w-full p-2 border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} 
+                                            placeholder="5.0"
+                                            value={logs[selectedDay.id]?.run?.dist || ''}
+                                            onChange={(e) => {
+                                                const n = {...logs}; if(!n[selectedDay.id]) n[selectedDay.id]={run:{}}; if(!n[selectedDay.id].run) n[selectedDay.id].run={};
+                                                n[selectedDay.id].run.dist = e.target.value; setLogs(n);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs opacity-60">Ø BPM</label>
+                                    <input 
+                                        type="number" 
+                                        className={`w-full p-2 border rounded ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`} 
+                                        placeholder="145"
+                                        value={logs[selectedDay.id]?.run?.bpm || ''}
+                                        onChange={(e) => {
+                                            const n = {...logs}; if(!n[selectedDay.id]) n[selectedDay.id]={run:{}}; if(!n[selectedDay.id].run) n[selectedDay.id].run={};
+                                            n[selectedDay.id].run.bpm = e.target.value; setLogs(n);
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs opacity-60 flex justify-between">RPE (1-10) <span>{logs[selectedDay.id]?.run?.rpe || 5}</span></label>
+                                    <input 
+                                        type="range" min="1" max="10" className="w-full" 
+                                        value={logs[selectedDay.id]?.run?.rpe || 5}
+                                        onChange={(e) => {
+                                            const n = {...logs}; if(!n[selectedDay.id]) n[selectedDay.id]={run:{}}; if(!n[selectedDay.id].run) n[selectedDay.id].run={};
+                                            n[selectedDay.id].run.rpe = e.target.value; setLogs(n);
+                                        }}
+                                    />
+                                </div>
+                                {(selectedDay.subtype === 'easy' || selectedDay.type === 'bike') && (
+                                    <button 
+                                        onClick={() => toggleBike(selectedDay.id)}
+                                        className="w-full p-2 border border-teal-500 text-teal-600 rounded text-xs font-bold"
+                                    >
+                                        🚴 {configs[week].bike.includes(selectedDay.id) ? 'Zu Laufen wechseln' : 'Zu Rad wechseln'}
+                                    </button>
                                 )}
                             </div>
                         )}
+
+                        {selectedDay.type === 'rest' && <p className="opacity-60 text-sm">Erhol dich gut!</p>}
                     </div>
-                );
-
-                // --- MAIN RENDER ---
-                return (
-                    <div className="max-w-md mx-auto p-4 pb-20 min-h-screen">
-                        <div className="flex justify-between items-center mb-6 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
-                            <div><h1 className="text-xl font-bold text-slate-800 dark:text-white">Hybrid V22</h1><div className="text-xs text-slate-400">Final</div></div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-xs font-bold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{getPhaseName(week)}</div>
-                                <button onClick={() => setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">{darkMode ? <Icons.Sun /> : <Icons.Moon />}</button>
-                            </div>
-                        </div>
-
-                        {view === 'plan' ? (
-                            <div className="fade-in">
-                                <div className="flex justify-between items-center mb-6">
-                                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-800">
-                                        <button onClick={()=>setWeek(Math.max(0, week-1))} className="p-2"><Icons.Left /></button>
-                                        <span className="text-sm font-bold w-16 text-center dark:text-white">W{week+1}</span>
-                                        <button onClick={()=>setWeek(Math.min(13, week+1))} className="p-2"><Icons.Right /></button>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>setEditMode(true)} className="bg-slate-900 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Setup</button>
-                                        <button onClick={()=>{setView('stats'); setStatsSubView('overview');}} className="bg-white dark:bg-slate-900 border dark:border-slate-800 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-lg text-xs font-bold"><Icons.Chart /></button>
-                                    </div>
-                                </div>
-
-                                {adaptFactor!==1.0 && <div className="mb-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 p-3 rounded-lg text-xs font-bold border border-indigo-100 dark:border-indigo-900 flex items-center gap-2"><Icons.Brain /> AI: {adaptFactor>1?'+10% Vol':'-10% Vol'}</div>}
-
-                                <div className="space-y-3">
-                                    {days.map((day, i) => (
-                                        <div key={i} onClick={()=>setSelDay(day)} className={`
-                                            flex items-center p-3 rounded-xl border dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm active:scale-[0.98] transition-transform
-                                            ${day.type==='gym'?'border-l-4 border-l-blue-500':day.type==='run'?'border-l-4 border-l-orange-500':day.type==='vol'?'border-l-4 border-l-pink-500':day.type==='bike'?'border-l-4 border-l-teal-500':'opacity-60'}
-                                            ${day.done ? 'bg-green-50 dark:bg-green-900/20' : ''}
-                                        `}>
-                                            <div className="w-16 text-xs font-bold text-slate-400 uppercase">{weekDays[i].substr(0,2)}</div>
-                                            <div className="flex-1">
-                                                <div className="font-bold text-slate-800 dark:text-white text-sm">{day.title}</div>
-                                                {day.type !== 'rest' && <div className="text-xs text-slate-500 dark:text-slate-400">{day.desc}</div>}
-                                            </div>
-                                            <div className="text-slate-300 dark:text-slate-600">
-                                                {day.done ? <div className="bg-green-500 rounded-full p-1"><Icons.Check /></div> : 
-                                                 day.type==='gym'?<Icons.Gym />:day.type==='run'?<Icons.Run />:day.type==='vol'?<Icons.Volleyball />:day.type==='bike'?<Icons.Bike />:<Icons.Rest />}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : <StatsView />}
-
-                        {editMode && <ConfigModal onClose={()=>setEditMode(false)} />}
-                        {selDay && <TrackerModal day={selDay} onClose={()=>setSelDay(null)} />}
+                    <div className={`p-4 border-t ${darkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+                        <button 
+                            onClick={() => { const n = {...logs}; if(!n[selectedDay.id]) n[selectedDay.id] = {}; n[selectedDay.id].done = true; setLogs(n); setSelectedDay(null); }}
+                            className={`w-full py-3 rounded-xl font-bold flex justify-center gap-2 ${darkMode ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'}`}
+                        >
+                            <Save size={18} /> Speichern & Fertig
+                        </button>
                     </div>
-                );
-            };
+                </div>
+            </div>
+        )}
 
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<App />);
-        
-        } catch (err) {
-            document.getElementById('error-log').style.display = 'block';
-            document.getElementById('error-log').innerText = "FATAL: " + err.message;
-        }
-    </script>
-</body>
-</html>
+      </div>
+    </div>
+  );
+}
