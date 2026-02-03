@@ -3,38 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V31 Fixed</title>
+    <title>Hybrid Coach V32 Safe</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
+    <script>
+        try { tailwind.config = { darkMode: 'class' }; } catch(e) { console.warn('Tailwind config error', e); }
+    </script>
 
     <style>
-        /* Basis-Styling */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; }
+        /* Fallback CSS falls Tailwind nicht lädt */
+        body { 
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-tap-highlight-color: transparent; 
+        }
         .dark body { background-color: #020617; color: #f1f5f9; }
         
-        /* Container */
         #app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 120px; min-height: 100vh; }
         
-        /* Animationen */
+        /* Modal Styles */
+        #modal-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; 
+            display: none; align-items: center; justify-content: center; padding: 20px; 
+            backdrop-filter: blur(4px); 
+        }
+        #modal-content { 
+            background: white; width: 100%; max-width: 400px; border-radius: 16px; 
+            overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; 
+        }
+        .dark #modal-content { background: #1e293b; color: white; }
+        #modal-body { overflow-y: auto; padding: 20px; }
+        
+        /* Animation */
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Modal Overlay */
-        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
-        #modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-        .dark #modal-content { background: #1e293b; color: white; }
-        #modal-body { overflow-y: auto; padding: 20px; }
+        /* Error Fallback */
+        #error-msg { display: none; color: red; padding: 20px; text-align: center; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
-    <div id="app"></div>
+    <div id="error-msg">
+        <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">Ups, ein Fehler.</h1>
+        <p>Bitte Seite neu laden oder Cache leeren.</p>
+        <button onclick="localStorage.clear(); location.reload()" style="padding:10px; background:red; color:white; border-radius:8px; margin-top:20px; border:none; font-weight:bold;">App Reset (Daten löschen)</button>
+        <div id="error-details" style="margin-top:20px; font-family:monospace; font-size:12px; background:#eee; padding:10px; border-radius:5px; text-align:left;"></div>
+    </div>
+
+    <div id="app">Loading Hybrid Coach...</div>
 
     <div id="modal-overlay" onclick="window.closeModal()">
         <div id="modal-content" onclick="event.stopPropagation()">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shadow-md">
-                <h3 id="modal-title" class="font-bold text-lg"></h3>
+                <h3 id="modal-title" class="font-bold text-lg">Details</h3>
                 <button onclick="window.closeModal()" class="text-2xl leading-none opacity-80 hover:opacity-100">&times;</button>
             </div>
             <div id="modal-body"></div>
@@ -43,35 +68,45 @@
     </div>
 
     <script>
-        // --- 1. CONFIG & GLOBALS ---
-        const STORE = { CONF: 'h31_conf', LOGS: 'h31_logs', USER: 'h31_user', THEME: 'h31_dark' };
-        const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-        const defaultConfigs = Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] }));
-
-        // Safe LocalStorage Getter
-        const getStore = (key, def) => {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : def;
-            } catch (e) {
-                console.error('Storage Error', e);
-                return def;
-            }
+        // Global Error Handler
+        window.onerror = function(msg, url, line) {
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+            document.getElementById('error-details').innerHTML += `${msg}<br>Zeile: ${line}`;
+            return false;
         };
 
+        // --- 1. SAFE STORAGE ---
+        const STORE = { CONF: 'h31_conf', LOGS: 'h31_logs', USER: 'h31_user', THEME: 'h31_dark' };
+        
+        function getSafe(key, def) {
+            try {
+                const res = localStorage.getItem(key);
+                if (!res || res === "undefined" || res === "null") return def;
+                return JSON.parse(res);
+            } catch(e) {
+                console.warn("Resetting key:", key);
+                return def;
+            }
+        }
+
+        // --- 2. STATE ---
+        const defaultConfigs = Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [] }));
+        
         let state = {
             week: 0,
-            view: 'plan', // 'plan' | 'stats'
+            view: 'plan', 
             statsSubView: 'overview',
             selectedExercise: null,
             selDay: null,
-            configs: getStore(STORE.CONF, defaultConfigs),
-            logs: getStore(STORE.LOGS, {}),
-            user: getStore(STORE.USER, { maxHR: 190 }),
-            darkMode: getStore(STORE.THEME, false)
+            configs: getSafe(STORE.CONF, defaultConfigs),
+            logs: getSafe(STORE.LOGS, {}),
+            user: getSafe(STORE.USER, { maxHR: 190 }),
+            darkMode: getSafe(STORE.THEME, false)
         };
 
-        // --- 2. ICONS ---
+        // --- 3. ICONS & CONSTANTS ---
+        const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const icon = (path, col) => `<svg class="w-5 h-5 ${col}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
         const I = {
             gym: icon('<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>', 'text-blue-600 dark:text-blue-400'),
@@ -90,7 +125,6 @@
             right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400')
         };
 
-        // --- 3. LOGIC ---
         const splits = {
             Upper: { t: "Gym: Oberkörper", d: "Kraft & Hypertrophie", ex: ["Bankdrücken (Maschine)", "Rudern", "Schulterpresse", "Latzug", "Trizeps Kabel", "Bizeps Maschine"] },
             Lower: { t: "Gym: Beine", d: "Kraft (Maschine)", ex: ["Beinpresse 45°", "Beinstrecker", "Beinbeuger", "Wadenheben", "Abduktoren", "Adduktoren", "Core"] },
@@ -100,6 +134,7 @@
             Full: { t: "Gym: Ganzkörper", d: "Erhalt & Maschinen", ex: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse", "Rückenstrecker"] }
         };
 
+        // --- 4. LOGIC ---
         function getPhaseInfo(w) {
             if (w < 5) return { t: "Base Phase", d: "Grundlagenausdauer & Gewöhnung" }; 
             if (w < 10) return { t: "Build Phase", d: "Steigerung von Volumen & Intensität" }; 
@@ -114,8 +149,8 @@
             const prefix = `w${w-1}`;
             for (let k in state.logs) {
                 if (k.startsWith(prefix) && state.logs[k].run && state.logs[k].run.rpe) {
-                    sum += parseInt(state.logs[k].run.rpe);
-                    cnt++;
+                    const rpe = parseFloat(state.logs[k].run.rpe);
+                    if(!isNaN(rpe)) { sum += rpe; cnt++; }
                 }
             }
             if (cnt === 0) return 1.0;
@@ -183,7 +218,7 @@
             return days.map(d => ({ ...d, done: state.logs[d.id]?.done, title: d.title||d.t, desc: d.desc||d.d, exercises: d.exercises||d.ex }));
         }
 
-        // --- 4. RENDERER ---
+        // --- 5. RENDERER ---
         window.render = function() {
             const app = document.getElementById('app');
             if (state.darkMode) document.documentElement.classList.add('dark');
@@ -234,7 +269,6 @@
                     if(day.type==='bike') { col = 'border-teal-500'; icon = I.bike; }
 
                     const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.2)' : 'background:#f0fdf4') : '';
-                    // Sicher encodieren für das onclick Attribut
                     const dayJson = encodeURIComponent(JSON.stringify(day));
 
                     html += `
@@ -255,6 +289,7 @@
             app.innerHTML = html;
         }
 
+        // --- STATS RENDERER ---
         function renderStats() {
             let gymData = [], runData = [];
             let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
@@ -382,7 +417,7 @@
             return html;
         }
 
-        // --- 5. ACTIONS (Global) ---
+        // --- 6. ACTIONS (GLOBAL) ---
         window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
         window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
         window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
@@ -401,50 +436,54 @@
         window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
         
         window.openDay = (json) => {
-            const day = JSON.parse(decodeURIComponent(json));
-            state.selDay = day; 
-            const log = state.logs[day.id] || {};
-            const run = log.run || { time:'', dist:'', bpm:'', rpe:5 };
-            
-            document.getElementById('modal-title').innerText = day.title;
-            let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">${day.desc}</p>`;
+            try {
+                const day = JSON.parse(decodeURIComponent(json));
+                state.selDay = day; 
+                const log = state.logs[day.id] || {};
+                const run = log.run || { time:'', dist:'', bpm:'', rpe:5 };
+                
+                document.getElementById('modal-title').innerText = day.title;
+                let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">${day.desc}</p>`;
 
-            if (day.type === 'gym') {
-                day.exercises.forEach((ex, i) => {
-                    const k = ex.replace(/\s/g, '');
-                    const sets = log.exercises?.[k] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
-                    html += `<div class="mb-4 pb-2 border-b dark:border-slate-800">
-                        <div class="text-sm font-bold mb-2 dark:text-white">${ex}</div>
-                        <div class="flex gap-2">
-                            ${sets.map((s, idx) => `
-                                <div class="flex gap-1">
-                                    <input type="number" placeholder="kg" class="w-12 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.w}" onchange="window.logGym('${day.id}','${k}',${idx},'w',this.value)">
-                                    <input type="number" placeholder="rp" class="w-10 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.r}" onchange="window.logGym('${day.id}','${k}',${idx},'r',this.value)">
-                                </div>
-                            `).join('')}
+                if (day.type === 'gym') {
+                    day.exercises.forEach((ex, i) => {
+                        const k = ex.replace(/\s/g, '');
+                        const sets = log.exercises?.[k] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
+                        html += `<div class="mb-4 pb-2 border-b dark:border-slate-800">
+                            <div class="text-sm font-bold mb-2 dark:text-white">${ex}</div>
+                            <div class="flex gap-2">
+                                ${sets.map((s, idx) => `
+                                    <div class="flex gap-1">
+                                        <input type="number" placeholder="kg" class="w-12 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.w}" onchange="window.logGym('${day.id}','${k}',${idx},'w',this.value)">
+                                        <input type="number" placeholder="rp" class="w-10 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.r}" onchange="window.logGym('${day.id}','${k}',${idx},'r',this.value)">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                    });
+                } else if (day.type !== 'rest') {
+                    html += `
+                        <div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div>
+                            <div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div>
                         </div>
-                    </div>`;
-                });
-            } else if (day.type !== 'rest') {
-                html += `
-                    <div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                        <div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div>
-                        <div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div>
-                    </div>
-                    <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div>
-                    <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>
-                `;
-                if(day.subtype==='easy' || day.type==='bike') {
-                    const isBike = state.configs[state.week].bike.includes(day.id);
-                    html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen' : 'Zu Rad'}</button>`;
+                        <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div>
+                        <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>
+                    `;
+                    if(day.subtype==='easy' || day.type==='bike') {
+                        const isBike = state.configs[state.week].bike.includes(day.id);
+                        html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen' : 'Zu Rad'}</button>`;
+                    }
+                } else {
+                    html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`;
                 }
-            } else {
-                html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`;
-            }
 
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
-            document.getElementById('modal-overlay').style.display = 'flex';
+                document.getElementById('modal-body').innerHTML = html;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
+                document.getElementById('modal-overlay').style.display = 'flex';
+            } catch (e) {
+                alert('Fehler beim Öffnen des Tages: ' + e.message);
+            }
         }
 
         window.openSetup = () => {
@@ -465,7 +504,6 @@
             document.getElementById('modal-overlay').style.display = 'flex';
         }
 
-        // --- GLOBAL LOGGERS ---
         window.logGym = (id, k, idx, f, v) => {
             if(!state.logs[id]) state.logs[id] = { exercises: {} };
             if(!state.logs[id].exercises) state.logs[id].exercises = {};
@@ -494,7 +532,7 @@
 
         // --- INIT ---
         window.onload = function() {
-            window.render();
+            setTimeout(window.render, 10);
         };
     </script>
 </body>
