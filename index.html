@@ -3,59 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V35 History</title>
+    <title>Hybrid Coach V36 Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        try { tailwind.config = { darkMode: 'class' }; } catch(e) { console.warn('Tailwind config error', e); }
-    </script>
+    <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
 
     <style>
-        /* Fallback CSS */
-        body { 
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f8fafc; 
-            color: #1e293b; 
-            margin: 0; padding: 0; 
-            -webkit-tap-highlight-color: transparent; 
-        }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; -webkit-tap-highlight-color: transparent; }
         .dark body { background-color: #020617; color: #f1f5f9; }
-        
         #app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 120px; min-height: 100vh; }
         
-        /* Modal Styles */
-        #modal-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; 
-            display: none; align-items: center; justify-content: center; padding: 20px; 
-            backdrop-filter: blur(4px); 
-        }
-        #modal-content { 
-            background: white; width: 100%; max-width: 400px; border-radius: 16px; 
-            overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; 
-        }
+        /* Modal */
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        #modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; }
         .dark #modal-content { background: #1e293b; color: white; }
         #modal-body { overflow-y: auto; padding: 20px; }
         
-        /* Chart Hover Magic */
+        /* Chart Tooltip */
         .chart-group:hover .tooltip { opacity: 1; }
         .chart-group:hover circle.dot { r: 6; stroke: white; stroke-width: 2px; }
-
-        /* Animation */
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Error Fallback */
-        #error-msg { display: none; color: red; padding: 20px; text-align: center; }
+        /* Error Screen */
+        #error-msg { display: none; position: fixed; inset: 0; background: #1e293b; color: white; z-index: 999; padding: 40px; text-align: center; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
     <div id="error-msg">
-        <h1 style="font-size:24px; font-weight:bold;">Ein Fehler ist aufgetreten.</h1>
-        <button onclick="localStorage.clear(); location.reload()" style="padding:10px; background:red; color:white; border-radius:8px; margin-top:20px;">App Reset (Daten löschen)</button>
+        <h1 class="text-2xl font-bold mb-4">Ups!</h1>
+        <p class="mb-6 opacity-80">Ein Fehler ist aufgetreten. Die Datenstruktur passt nicht mehr.</p>
+        <button onclick="localStorage.clear(); location.reload()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App komplett zurücksetzen</button>
     </div>
 
-    <div id="app">Loading Hybrid Coach...</div>
+    <div id="app">Loading...</div>
 
     <div id="modal-overlay" onclick="window.closeModal()">
         <div id="modal-content" onclick="event.stopPropagation()">
@@ -69,21 +51,18 @@
     </div>
 
     <script>
-        // Global Error Handler
-        window.onerror = function(msg, url, line) {
-            document.getElementById('app').style.display = 'none';
-            document.getElementById('error-msg').style.display = 'block';
-            return false;
-        };
+        // --- ERROR HANDLING ---
+        window.onerror = function() { document.getElementById('error-msg').style.display = 'block'; };
 
-        // --- 1. SAFE STORAGE ---
-        const STORE = { CONF: 'h35_conf', LOGS: 'h35_logs', USER: 'h35_user', THEME: 'h35_dark' };
-        
+        // --- 1. CONFIG & STORE ---
+        // New keys to ensure clean start if needed, but we try to migrate
+        const STORE = { CONF: 'h36_conf', LOGS: 'h36_logs', USER: 'h36_user', THEME: 'h36_dark' };
+
         function getSafe(key, def) {
             try {
-                const res = localStorage.getItem(key);
-                if (!res || res === "undefined") return def;
-                return JSON.parse(res);
+                const item = localStorage.getItem(key);
+                if(!item || item === "undefined") return def;
+                return JSON.parse(item);
             } catch(e) { return def; }
         }
 
@@ -92,7 +71,7 @@
         
         let state = {
             week: 0,
-            view: 'plan', 
+            view: 'plan',
             statsSubView: 'overview',
             selectedExercise: null,
             selDay: null,
@@ -101,6 +80,19 @@
             user: getSafe(STORE.USER, { maxHR: 190 }),
             darkMode: getSafe(STORE.THEME, false)
         };
+
+        // --- SELF REPAIR ---
+        // Fixes crashes caused by old data structures
+        (function repairState() {
+            if(!Array.isArray(state.configs)) state.configs = defaultConfigs;
+            for(let i=0; i<14; i++) {
+                if(!state.configs[i] || typeof state.configs[i] !== 'object') {
+                    state.configs[i] = { uni: ['Montag','Donnerstag'], vol: true, bike: [] };
+                }
+                if(!Array.isArray(state.configs[i].uni)) state.configs[i].uni = [];
+                if(!Array.isArray(state.configs[i].bike)) state.configs[i].bike = [];
+            }
+        })();
 
         // --- 3. ICONS ---
         const icon = (path, col) => `<svg class="w-5 h-5 ${col}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
@@ -155,6 +147,7 @@
         }
 
         function generatePlan(wIdx) {
+            // Safety check
             const cfg = state.configs[wIdx] || { uni: [], vol: true, bike: [] };
             const days = Array(7).fill(null);
             const factor = getAdaptFactor(wIdx);
@@ -170,7 +163,7 @@
             const lr = { type: 'run', subtype: 'long', title: wIdx===13 ? "HALBMARATHON" : `Long Run (${lrDist} km)`, desc: "Zone 2" };
             if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` }; else days[5] = { ...lr, id: `w${wIdx}d5` };
 
-            const availGym = cfg.uni.filter(d => days[weekDays.indexOf(d)] === null);
+            const availGym = cfg.uni ? cfg.uni.filter(d => days[weekDays.indexOf(d)] === null) : [];
             const gymCount = availGym.length >= 3 ? 3 : 2;
             let placed = 0;
             availGym.forEach(d => {
@@ -204,7 +197,7 @@
                 let dist = (Math.min(5 + wIdx * 0.5, 9) * factor).toFixed(1);
                 if (wIdx >= 12) dist = 5; if (wIdx === 13) dist = 3;
                 let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: "Locker" };
-                if (cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio" };
+                if (cfg.bike && cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio" };
                 days[best] = { ...wo, id: `w${wIdx}d${best}` };
                 needed--;
             }
@@ -214,10 +207,9 @@
             return days.map(d => ({ ...d, done: state.logs[d.id]?.done, title: d.title||d.t, desc: d.desc||d.d, exercises: d.exercises||d.ex }));
         }
 
-        // --- 5. HELPER FOR HISTORY ---
+        // --- 5. HISTORY HELPER (SAFE) ---
         function getHistory(type, name, currentId) {
             try {
-                // Determine current position
                 const wMatch = currentId.match(/w(\d+)/);
                 const dMatch = currentId.match(/d(\d+)/);
                 if (!wMatch || !dMatch) return null;
@@ -225,11 +217,10 @@
                 const currW = parseInt(wMatch[1]);
                 const currD = parseInt(dMatch[1]);
 
-                // Iterate backwards
+                // Backwards search
                 for (let w = currW; w >= 0; w--) {
                     for (let d = 6; d >= 0; d--) {
-                        // Skip if we are in the current week but ahead of (or at) current day
-                        if (w === currW && d >= currD) continue;
+                        if (w === currW && d >= currD) continue; // Skip future/current
 
                         const id = `w${w}d${d}`;
                         const log = state.logs[id];
@@ -237,7 +228,6 @@
 
                         if (type === 'gym' && log.exercises && log.exercises[name]) {
                             const sets = log.exercises[name];
-                            // Only return if at least one weight is entered
                             if (sets.some(s => s.w)) return sets;
                         }
 
@@ -246,82 +236,87 @@
                         }
                     }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.log('Hist error', e); }
             return null;
         }
 
         // --- 6. RENDERER ---
         window.render = function() {
-            const app = document.getElementById('app');
-            if (state.darkMode) document.documentElement.classList.add('dark');
-            else document.documentElement.classList.remove('dark');
+            try {
+                const app = document.getElementById('app');
+                if (state.darkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
 
-            const phase = getPhaseInfo(state.week);
+                const phase = getPhaseInfo(state.week);
 
-            // HEADER
-            let html = `
-                <div class="flex justify-between items-center mb-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <div><h1 class="text-xl font-bold dark:text-white">Hybrid Coach</h1><div class="text-xs opacity-60 dark:text-slate-400">14 Wochen Plan</div></div>
-                    <button onclick="window.toggleTheme()" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">${state.darkMode ? I.sun : I.moon}</button>
-                </div>
-                <div class="mb-6 p-4 rounded-xl shadow-sm border flex items-start gap-4 bg-white dark:bg-slate-900 dark:border-slate-800">
-                    <div class="p-2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">${I.gym}</div>
-                    <div>
-                        <h3 class="font-bold text-sm mb-1 dark:text-white">${phase.t}: Woche ${state.week + 1}</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">${phase.d}</p>
+                // HEADER
+                let html = `
+                    <div class="flex justify-between items-center mb-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+                        <div><h1 class="text-xl font-bold dark:text-white">Hybrid Coach</h1><div class="text-xs opacity-60 dark:text-slate-400">14 Wochen Plan</div></div>
+                        <button onclick="window.toggleTheme()" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">${state.darkMode ? I.sun : I.moon}</button>
                     </div>
-                </div>
-                <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-800">
-                        <button onclick="window.changeWeek(-1)" class="p-2">${I.left}</button>
-                        <span class="text-sm font-bold w-12 text-center dark:text-white">W${state.week+1}</span>
-                        <button onclick="window.changeWeek(1)" class="p-2">${I.right}</button>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="window.openSetup()" class="bg-slate-900 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Setup</button>
-                        <button onclick="window.toggleView()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">${state.view==='plan' ? I.chart : I.plan}</button>
-                    </div>
-                </div>
-            `;
-
-            if (state.view === 'plan') {
-                const factor = getAdaptFactor(state.week);
-                if(factor !== 1.0) {
-                    html += `<div class="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-700 flex gap-2 items-center">${I.brain} AI: ${factor > 1 ? '+10%' : '-10%'} Volumen</div>`;
-                }
-
-                const days = generatePlan(state.week);
-                html += `<div class="space-y-3 fade-in">`;
-                days.forEach((day, i) => {
-                    let col = 'border-slate-300';
-                    let icon = I.rest;
-                    if(day.type==='gym') { col = 'border-blue-500'; icon = I.gym; }
-                    if(day.type==='run') { col = 'border-orange-500'; icon = I.run; }
-                    if(day.type==='vol') { col = 'border-pink-500'; icon = I.vol; }
-                    if(day.type==='bike') { col = 'border-teal-500'; icon = I.bike; }
-
-                    const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.2)' : 'background:#f0fdf4') : '';
-                    const dayJson = encodeURIComponent(JSON.stringify(day));
-
-                    html += `
-                        <div onclick="window.openDay('${dayJson}')" class="flex items-center p-3 rounded-xl border dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm border-l-4 ${col} dark:border-l-${col.split('-')[1]}-500 dark:border-slate-700 mb-3 cursor-pointer ${day.done ? '' : 'opacity-100'}" style="${bg}">
-                            <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500">${weekDays[i].substr(0,2)}</div>
-                            <div class="flex-1">
-                                <div class="font-bold text-sm dark:text-white">${day.title}</div>
-                                ${day.type !== 'rest' ? `<div class="text-xs opacity-60 dark:text-slate-400">${day.desc}</div>` : ''}
-                            </div>
-                            <div class="text-slate-300 dark:text-slate-600">${day.done ? `<div class="bg-green-500 rounded-full p-1">${I.check}</div>` : icon}</div>
+                    <div class="mb-6 p-4 rounded-xl shadow-sm border flex items-start gap-4 bg-white dark:bg-slate-900 dark:border-slate-800">
+                        <div class="p-2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">${I.gym}</div>
+                        <div>
+                            <h3 class="font-bold text-sm mb-1 dark:text-white">${phase.t}: Woche ${state.week + 1}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">${phase.d}</p>
                         </div>
-                    `;
-                });
-                html += `</div>`;
-            } else {
-                html += renderStats();
+                    </div>
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-800">
+                            <button onclick="window.changeWeek(-1)" class="p-2">${I.left}</button>
+                            <span class="text-sm font-bold w-12 text-center dark:text-white">W${state.week+1}</span>
+                            <button onclick="window.changeWeek(1)" class="p-2">${I.right}</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="window.openSetup()" class="bg-slate-900 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Setup</button>
+                            <button onclick="window.toggleView()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">${state.view==='plan' ? I.chart : I.plan}</button>
+                        </div>
+                    </div>
+                `;
+
+                if (state.view === 'plan') {
+                    const factor = getAdaptFactor(state.week);
+                    if(factor !== 1.0) {
+                        html += `<div class="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-700 flex gap-2 items-center">${I.brain} AI: ${factor > 1 ? '+10%' : '-10%'} Volumen</div>`;
+                    }
+
+                    const days = generatePlan(state.week);
+                    html += `<div class="space-y-3 fade-in">`;
+                    days.forEach((day, i) => {
+                        let col = 'border-slate-300';
+                        let icon = I.rest;
+                        if(day.type==='gym') { col = 'border-blue-500'; icon = I.gym; }
+                        if(day.type==='run') { col = 'border-orange-500'; icon = I.run; }
+                        if(day.type==='vol') { col = 'border-pink-500'; icon = I.vol; }
+                        if(day.type==='bike') { col = 'border-teal-500'; icon = I.bike; }
+
+                        const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.2)' : 'background:#f0fdf4') : '';
+                        const dayJson = encodeURIComponent(JSON.stringify(day));
+
+                        html += `
+                            <div onclick="window.openDay('${dayJson}')" class="flex items-center p-3 rounded-xl border dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm border-l-4 ${col} dark:border-l-${col.split('-')[1]}-500 dark:border-slate-700 mb-3 cursor-pointer ${day.done ? '' : 'opacity-100'}" style="${bg}">
+                                <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500">${weekDays[i].substr(0,2)}</div>
+                                <div class="flex-1">
+                                    <div class="font-bold text-sm dark:text-white">${day.title}</div>
+                                    ${day.type !== 'rest' ? `<div class="text-xs opacity-60 dark:text-slate-400">${day.desc}</div>` : ''}
+                                </div>
+                                <div class="text-slate-300 dark:text-slate-600">${day.done ? `<div class="bg-green-500 rounded-full p-1">${I.check}</div>` : icon}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += renderStats();
+                }
+                app.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                document.getElementById('error-msg').style.display = 'block';
             }
-            app.innerHTML = html;
         }
 
-        // --- STATS RENDERER ---
+        // --- STATS ---
         function renderStats() {
             let gymData = [], runData = [];
             let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
@@ -367,14 +362,12 @@
                         <div class="flex items-end gap-1 h-24">
                             ${gymData.map((v,i) => `<div class="flex-1 bg-blue-500 rounded-t" style="height:${(v/maxGym)*100}%; min-height:4px;"></div>`).join('')}
                         </div>
-                        <div class="flex justify-between text-xs opacity-50 mt-2 dark:text-slate-400"><span>Start</span><span>Aktuell</span></div>
                     </div>
                     <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
                         <h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.run} Lauf Distanz</h3>
                         <div class="flex items-end gap-1 h-24">
                             ${runData.map((v,i) => `<div class="flex-1 bg-orange-500 rounded-t" style="height:${(v/maxRun)*100}%; min-height:4px;"></div>`).join('')}
                         </div>
-                        <div class="flex justify-between text-xs opacity-50 mt-2 dark:text-slate-400"><span>Start</span><span>Aktuell</span></div>
                     </div>
                 `;
             } else {
@@ -472,7 +465,7 @@
             return html;
         }
 
-        // --- 6. ACTIONS (GLOBAL) ---
+        // --- GLOBAL ACTIONS ---
         window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
         window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
         window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
@@ -539,9 +532,11 @@
                          let pace = '-';
                          if(dist > 0 && m > 0) {
                             const pVal = m/dist;
-                            const min = Math.floor(pVal);
-                            const sec = Math.round((pVal - min) * 60);
-                            pace = `${min}:${sec < 10 ? '0'+sec : sec}`;
+                            if(isFinite(pVal)) {
+                                const min = Math.floor(pVal);
+                                const sec = Math.round((pVal - min) * 60);
+                                pace = `${min}:${sec < 10 ? '0'+sec : sec}`;
+                            }
                          }
                          histText = `<div class="mb-4 text-xs text-blue-500 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">Letzter Lauf: ${hist.dist}km in ${hist.time} (${pace}/km)</div>`;
                     }
@@ -553,4 +548,86 @@
                             <div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div>
                         </div>
                         <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div>
-                        <div class="mb-4"><label class="text-xs opacity-60 dark:text
+                        <div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>
+                    `;
+                    if(day.subtype==='easy' || day.type==='bike') {
+                        const isBike = state.configs[state.week].bike ? state.configs[state.week].bike.includes(day.id) : false;
+                        html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen' : 'Zu Rad'}</button>`;
+                    }
+                } else {
+                    html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`;
+                }
+
+                document.getElementById('modal-body').innerHTML = html;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
+                document.getElementById('modal-overlay').style.display = 'flex';
+            } catch (e) {
+                console.error(e);
+                alert('Fehler: ' + e.message);
+            }
+        }
+
+        window.openSetup = () => {
+            const cfg = state.configs[state.week] || { uni: [], vol: true };
+            let html = `<p class="text-xs font-bold opacity-50 mb-2 dark:text-slate-400">UNI TAGE (Gym Prio)</p><div class="grid grid-cols-2 gap-2 mb-6" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">`;
+            weekDays.forEach(d => {
+                const act = cfg.uni.includes(d);
+                html += `<button onclick="window.toggleUni('${d}')" class="p-2 text-xs border rounded ${act ? 'bg-blue-600 text-white border-blue-600' : 'dark:border-slate-700 dark:text-slate-300'}">${d}</button>`;
+            });
+            html += `</div>
+            <div class="mb-4"><label class="text-xs font-bold opacity-60 block mb-1 dark:text-slate-400">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="window.saveHR(this.value)" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700"></div>
+            <button onclick="window.toggleVol()" class="w-full p-3 border rounded text-xs font-bold ${cfg.vol ? 'bg-pink-50 text-pink-700 dark:bg-pink-900 dark:text-pink-300' : 'dark:border-slate-700 dark:text-slate-300'}">Volleyball (Di) ${cfg.vol?'AN':'AUS'}</button>
+            <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-6 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
+            
+            document.getElementById('modal-title').innerText = `Setup W${state.week+1}`;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-footer').innerHTML = '';
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        // --- GLOBAL LOGGERS ---
+        window.logGym = (id, k, idx, f, v) => {
+            if(!state.logs[id]) state.logs[id] = { exercises: {} };
+            if(!state.logs[id].exercises) state.logs[id].exercises = {};
+            if(!state.logs[id].exercises[k]) state.logs[id].exercises[k] = [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
+            state.logs[id].exercises[k][idx][f] = v;
+            save();
+        };
+
+        window.logRun = (id, f, v) => {
+            if(!state.logs[id]) state.logs[id] = { run: {} };
+            if(!state.logs[id].run) state.logs[id].run = {};
+            state.logs[id].run[f] = v;
+            save();
+        };
+
+        window.finishDay = (id) => {
+            if(!state.logs[id]) state.logs[id] = {};
+            state.logs[id].done = true;
+            save(); window.closeModal();
+        };
+
+        window.saveHR = (v) => { state.user.maxHR = v; save(); };
+        window.toggleUni = (d) => { 
+            if(!state.configs[state.week].uni) state.configs[state.week].uni = [];
+            const list = state.configs[state.week].uni; 
+            if(list.includes(d)) state.configs[state.week].uni = list.filter(x=>x!==d); 
+            else state.configs[state.week].uni.push(d); 
+            save(); window.openSetup(); 
+        };
+        window.toggleVol = () => { state.configs[state.week].vol = !state.configs[state.week].vol; save(); window.openSetup(); };
+        window.toggleBike = (id) => { 
+            if(!state.configs[state.week].bike) state.configs[state.week].bike = [];
+            const list = state.configs[state.week].bike; 
+            if(list.includes(id)) state.configs[state.week].bike = list.filter(x=>x!==id); 
+            else state.configs[state.week].bike.push(id); 
+            save(); window.closeModal(); window.render(); 
+        };
+
+        // --- INIT ---
+        window.onload = function() {
+            setTimeout(window.render, 10);
+        };
+    </script>
+</body>
+</html>
