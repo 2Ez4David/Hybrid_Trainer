@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V36 Stable</title>
+    <title>Hybrid Coach V37 Backup</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
@@ -19,7 +19,7 @@
         .dark #modal-content { background: #1e293b; color: white; }
         #modal-body { overflow-y: auto; padding: 20px; }
         
-        /* Chart Tooltip */
+        /* Tooltip */
         .chart-group:hover .tooltip { opacity: 1; }
         .chart-group:hover circle.dot { r: 6; stroke: white; stroke-width: 2px; }
         .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -31,10 +31,12 @@
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
+    <input type="file" id="import-input" style="display:none" onchange="window.importData(this)">
+
     <div id="error-msg">
         <h1 class="text-2xl font-bold mb-4">Ups!</h1>
-        <p class="mb-6 opacity-80">Ein Fehler ist aufgetreten. Die Datenstruktur passt nicht mehr.</p>
-        <button onclick="localStorage.clear(); location.reload()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App komplett zurücksetzen</button>
+        <p class="mb-6 opacity-80">Ein Fehler ist aufgetreten.</p>
+        <button onclick="localStorage.clear(); location.reload()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App Reset</button>
     </div>
 
     <div id="app">Loading...</div>
@@ -51,12 +53,22 @@
     </div>
 
     <script>
-        // --- ERROR HANDLING ---
         window.onerror = function() { document.getElementById('error-msg').style.display = 'block'; };
 
-        // --- 1. CONFIG & STORE ---
-        // New keys to ensure clean start if needed, but we try to migrate
-        const STORE = { CONF: 'h36_conf', LOGS: 'h36_logs', USER: 'h36_user', THEME: 'h36_dark' };
+        // --- 1. CONFIG & MIGRATION ---
+        const STORE = { CONF: 'h37_conf', LOGS: 'h37_logs', USER: 'h37_user', THEME: 'h37_dark' };
+        const OLD_STORE = { CONF: 'h36_conf', LOGS: 'h36_logs', USER: 'h36_user', THEME: 'h36_dark' };
+
+        // Auto-Migration from V36 to V37
+        (function migrate() {
+            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem(OLD_STORE.CONF)) {
+                console.log("Migrating data...");
+                localStorage.setItem(STORE.CONF, localStorage.getItem(OLD_STORE.CONF));
+                localStorage.setItem(STORE.LOGS, localStorage.getItem(OLD_STORE.LOGS));
+                localStorage.setItem(STORE.USER, localStorage.getItem(OLD_STORE.USER));
+                localStorage.setItem(STORE.THEME, localStorage.getItem(OLD_STORE.THEME));
+            }
+        })();
 
         function getSafe(key, def) {
             try {
@@ -81,8 +93,7 @@
             darkMode: getSafe(STORE.THEME, false)
         };
 
-        // --- SELF REPAIR ---
-        // Fixes crashes caused by old data structures
+        // Self Repair
         (function repairState() {
             if(!Array.isArray(state.configs)) state.configs = defaultConfigs;
             for(let i=0; i<14; i++) {
@@ -110,7 +121,9 @@
             moon: icon('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>', 'text-slate-400'),
             save: icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>', 'text-white'),
             left: icon('<polyline points="15 18 9 12 15 6"/>', 'text-slate-500 dark:text-slate-400'),
-            right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400')
+            right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400'),
+            dl: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', 'text-white'),
+            ul: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', 'text-white')
         };
         const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const splits = {
@@ -147,7 +160,6 @@
         }
 
         function generatePlan(wIdx) {
-            // Safety check
             const cfg = state.configs[wIdx] || { uni: [], vol: true, bike: [] };
             const days = Array(7).fill(null);
             const factor = getAdaptFactor(wIdx);
@@ -203,11 +215,10 @@
             }
 
             for(let i=0; i<7; i++) if(!days[i]) days[i] = { type: 'rest', title: "Recovery", id: `w${wIdx}d${i}` };
-            
             return days.map(d => ({ ...d, done: state.logs[d.id]?.done, title: d.title||d.t, desc: d.desc||d.d, exercises: d.exercises||d.ex }));
         }
 
-        // --- 5. HISTORY HELPER (SAFE) ---
+        // --- 5. HISTORY HELPER ---
         function getHistory(type, name, currentId) {
             try {
                 const wMatch = currentId.match(/w(\d+)/);
@@ -217,11 +228,9 @@
                 const currW = parseInt(wMatch[1]);
                 const currD = parseInt(dMatch[1]);
 
-                // Backwards search
                 for (let w = currW; w >= 0; w--) {
                     for (let d = 6; d >= 0; d--) {
-                        if (w === currW && d >= currD) continue; // Skip future/current
-
+                        if (w === currW && d >= currD) continue;
                         const id = `w${w}d${d}`;
                         const log = state.logs[id];
                         if (!log) continue;
@@ -236,11 +245,49 @@
                         }
                     }
                 }
-            } catch (e) { console.log('Hist error', e); }
+            } catch (e) { console.log(e); }
             return null;
         }
 
-        // --- 6. RENDERER ---
+        // --- 6. IMPORT / EXPORT ---
+        window.exportData = () => {
+            const data = { conf: state.configs, logs: state.logs, user: state.user, theme: state.darkMode };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hybrid_coach_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.importData = (input) => {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.conf && data.logs) {
+                        if(confirm('Achtung: Alle aktuellen Daten werden überschrieben. Fortfahren?')) {
+                            localStorage.setItem(STORE.CONF, JSON.stringify(data.conf));
+                            localStorage.setItem(STORE.LOGS, JSON.stringify(data.logs));
+                            localStorage.setItem(STORE.USER, JSON.stringify(data.user || { maxHR: 190 }));
+                            localStorage.setItem(STORE.THEME, JSON.stringify(data.theme || false));
+                            alert('Daten erfolgreich importiert!');
+                            location.reload();
+                        }
+                    } else {
+                        alert('Ungültige Backup-Datei.');
+                    }
+                } catch(err) {
+                    alert('Fehler beim Lesen der Datei.');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        // --- 7. RENDERER ---
         window.render = function() {
             try {
                 const app = document.getElementById('app');
@@ -249,7 +296,6 @@
 
                 const phase = getPhaseInfo(state.week);
 
-                // HEADER
                 let html = `
                     <div class="flex justify-between items-center mb-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
                         <div><h1 class="text-xl font-bold dark:text-white">Hybrid Coach</h1><div class="text-xs opacity-60 dark:text-slate-400">14 Wochen Plan</div></div>
@@ -280,7 +326,6 @@
                     if(factor !== 1.0) {
                         html += `<div class="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-700 flex gap-2 items-center">${I.brain} AI: ${factor > 1 ? '+10%' : '-10%'} Volumen</div>`;
                     }
-
                     const days = generatePlan(state.week);
                     html += `<div class="space-y-3 fade-in">`;
                     days.forEach((day, i) => {
@@ -290,10 +335,8 @@
                         if(day.type==='run') { col = 'border-orange-500'; icon = I.run; }
                         if(day.type==='vol') { col = 'border-pink-500'; icon = I.vol; }
                         if(day.type==='bike') { col = 'border-teal-500'; icon = I.bike; }
-
                         const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.2)' : 'background:#f0fdf4') : '';
                         const dayJson = encodeURIComponent(JSON.stringify(day));
-
                         html += `
                             <div onclick="window.openDay('${dayJson}')" class="flex items-center p-3 rounded-xl border dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm border-l-4 ${col} dark:border-l-${col.split('-')[1]}-500 dark:border-slate-700 mb-3 cursor-pointer ${day.done ? '' : 'opacity-100'}" style="${bg}">
                                 <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500">${weekDays[i].substr(0,2)}</div>
@@ -310,13 +353,9 @@
                     html += renderStats();
                 }
                 app.innerHTML = html;
-            } catch(e) {
-                console.error(e);
-                document.getElementById('error-msg').style.display = 'block';
-            }
+            } catch(e) { console.error(e); document.getElementById('error-msg').style.display = 'block'; }
         }
 
-        // --- STATS ---
         function renderStats() {
             let gymData = [], runData = [];
             let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
@@ -374,7 +413,6 @@
                 const gymSet = new Set();
                 Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e)));
                 const gymList = Array.from(gymSet).sort();
-                
                 html += `<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-800">
                     <h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3>
                     <select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white">
@@ -439,8 +477,7 @@
                                         const x = (i / (hist.length - 1)) * w;
                                         const y = h - (d.val / maxVal) * h;
                                         const lbl = formatVal(d.val, state.selectedExercise);
-                                        return `
-                                        <g class="chart-group" style="cursor:pointer">
+                                        return `<g class="chart-group" style="cursor:pointer">
                                             <circle cx="${x}" cy="${y}" r="15" fill="transparent" />
                                             <circle cx="${x}" cy="${y}" r="4" class="dot fill-blue-500 dark:fill-blue-400 transition-all" />
                                             <text x="${x}" y="${h+20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${i+1}</text>
@@ -455,9 +492,7 @@
                                 <div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf 14 Wochen</div>
                             </div>
                         `;
-                    } else {
-                        html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400">Keine Daten verfügbar</div>`;
-                    }
+                    } else { html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400">Keine Daten verfügbar</div>`; }
                 }
                 html += `</div>`;
             }
@@ -465,7 +500,7 @@
             return html;
         }
 
-        // --- GLOBAL ACTIONS ---
+        // --- ACTIONS ---
         window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
         window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
         window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
@@ -497,8 +532,6 @@
                     day.exercises.forEach((ex, i) => {
                         const k = ex.replace(/\s/g, '');
                         const sets = log.exercises?.[k] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}];
-                        
-                        // HISTORY LOOKUP
                         const hist = getHistory('gym', k, day.id);
                         let histText = '';
                         if (hist) {
@@ -507,9 +540,7 @@
                         }
 
                         html += `<div class="mb-4 pb-2 border-b dark:border-slate-800">
-                            <div class="flex justify-between items-baseline mb-2">
-                                <div class="text-sm font-bold dark:text-white">${ex}</div>
-                            </div>
+                            <div class="flex justify-between items-baseline mb-2"><div class="text-sm font-bold dark:text-white">${ex}</div></div>
                             ${histText}
                             <div class="flex gap-2">
                                 ${sets.map((s, idx) => `
@@ -522,7 +553,6 @@
                         </div>`;
                     });
                 } else if (day.type !== 'rest') {
-                    // RUN HISTORY
                     const hist = getHistory('run', null, day.id);
                     let histText = '';
                     if (hist) {
@@ -540,7 +570,6 @@
                          }
                          histText = `<div class="mb-4 text-xs text-blue-500 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">Letzter Lauf: ${hist.dist}km in ${hist.time} (${pace}/km)</div>`;
                     }
-
                     html += `
                         ${histText}
                         <div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -554,17 +583,11 @@
                         const isBike = state.configs[state.week].bike ? state.configs[state.week].bike.includes(day.id) : false;
                         html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen' : 'Zu Rad'}</button>`;
                     }
-                } else {
-                    html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`;
-                }
-
+                } else { html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`; }
                 document.getElementById('modal-body').innerHTML = html;
                 document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
                 document.getElementById('modal-overlay').style.display = 'flex';
-            } catch (e) {
-                console.error(e);
-                alert('Fehler: ' + e.message);
-            }
+            } catch (e) { console.error(e); alert('Fehler: ' + e.message); }
         }
 
         window.openSetup = () => {
@@ -577,8 +600,11 @@
             html += `</div>
             <div class="mb-4"><label class="text-xs font-bold opacity-60 block mb-1 dark:text-slate-400">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="window.saveHR(this.value)" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700"></div>
             <button onclick="window.toggleVol()" class="w-full p-3 border rounded text-xs font-bold ${cfg.vol ? 'bg-pink-50 text-pink-700 dark:bg-pink-900 dark:text-pink-300' : 'dark:border-slate-700 dark:text-slate-300'}">Volleyball (Di) ${cfg.vol?'AN':'AUS'}</button>
-            <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-6 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
-            
+            <div class="grid grid-cols-2 gap-2 mt-6 mb-6">
+                <button onclick="window.exportData()" class="p-3 rounded-xl bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-2">${I.dl} Backup speichern</button>
+                <button onclick="document.getElementById('import-input').click()" class="p-3 rounded-xl bg-orange-500 text-white text-xs font-bold flex items-center justify-center gap-2">${I.ul} Backup laden</button>
+            </div>
+            <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-2 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
             document.getElementById('modal-title').innerText = `Setup W${state.week+1}`;
             document.getElementById('modal-body').innerHTML = html;
             document.getElementById('modal-footer').innerHTML = '';
