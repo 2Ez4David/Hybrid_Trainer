@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V46 Final UI</title>
+    <title>Hybrid Coach V47 Nav Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
@@ -54,15 +54,15 @@
         window.onerror = function() { document.getElementById('error-msg').style.display = 'block'; };
 
         // --- 1. CONFIG ---
-        const STORE = { CONF: 'h46_conf', LOGS: 'h46_logs', USER: 'h46_user', THEME: 'h46_dark' };
+        const STORE = { CONF: 'h47_conf', LOGS: 'h47_logs', USER: 'h47_user', THEME: 'h47_dark' };
         
-        // Migration V45 -> V46
+        // Migration V46 -> V47
         (function migrate() {
-            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem('h45_conf')) {
-                localStorage.setItem(STORE.CONF, localStorage.getItem('h45_conf'));
-                localStorage.setItem(STORE.LOGS, localStorage.getItem('h45_logs'));
-                localStorage.setItem(STORE.USER, localStorage.getItem('h45_user'));
-                localStorage.setItem(STORE.THEME, localStorage.getItem('h45_dark'));
+            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem('h46_conf')) {
+                localStorage.setItem(STORE.CONF, localStorage.getItem('h46_conf'));
+                localStorage.setItem(STORE.LOGS, localStorage.getItem('h46_logs'));
+                localStorage.setItem(STORE.USER, localStorage.getItem('h46_user'));
+                localStorage.setItem(STORE.THEME, localStorage.getItem('h46_dark'));
             }
         })();
 
@@ -371,7 +371,7 @@
                 // SMART BUTTON LOGIC
                 const isMob = state.view === 'mobility';
                 
-                // UNIFIED NAVIGATION
+                // UNIFIED NAVIGATION - FIXED BUTTON LOGIC
                 html += `
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-800">
@@ -387,7 +387,10 @@
                                 ${isMob ? I.plan : I.yoga} ${isMob ? 'Training' : 'Mob'}
                             </button>
 
-                            <button onclick="state.view='plan'; window.toggleView()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">${state.view==='plan' ? I.chart : I.plan}</button>
+                            <button onclick="state.view = (state.view === 'stats' ? 'plan' : 'stats'); window.render()" 
+                                    class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">
+                                ${state.view==='stats' ? I.plan : I.chart}
+                            </button>
                         </div>
                     </div>
                 `;
@@ -616,6 +619,7 @@
         // --- GLOBAL ACTIONS ---
         window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
         window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
+        // FIX: The Toggle Logic
         window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
         
         function save(key, val) {
