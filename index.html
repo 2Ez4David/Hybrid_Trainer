@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V37 Backup</title>
+    <title>Hybrid Coach V46 Final UI</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
@@ -19,12 +19,11 @@
         .dark #modal-content { background: #1e293b; color: white; }
         #modal-body { overflow-y: auto; padding: 20px; }
         
-        /* Tooltip */
+        /* Tooltip & Anim */
         .chart-group:hover .tooltip { opacity: 1; }
-        .chart-group:hover circle.dot { r: 6; stroke: white; stroke-width: 2px; }
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
+        
         /* Error Screen */
         #error-msg { display: none; position: fixed; inset: 0; background: #1e293b; color: white; z-index: 999; padding: 40px; text-align: center; }
     </style>
@@ -35,7 +34,6 @@
 
     <div id="error-msg">
         <h1 class="text-2xl font-bold mb-4">Ups!</h1>
-        <p class="mb-6 opacity-80">Ein Fehler ist aufgetreten.</p>
         <button onclick="localStorage.clear(); location.reload()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App Reset</button>
     </div>
 
@@ -55,27 +53,21 @@
     <script>
         window.onerror = function() { document.getElementById('error-msg').style.display = 'block'; };
 
-        // --- 1. CONFIG & MIGRATION ---
-        const STORE = { CONF: 'h37_conf', LOGS: 'h37_logs', USER: 'h37_user', THEME: 'h37_dark' };
-        const OLD_STORE = { CONF: 'h36_conf', LOGS: 'h36_logs', USER: 'h36_user', THEME: 'h36_dark' };
-
-        // Auto-Migration from V36 to V37
+        // --- 1. CONFIG ---
+        const STORE = { CONF: 'h46_conf', LOGS: 'h46_logs', USER: 'h46_user', THEME: 'h46_dark' };
+        
+        // Migration V45 -> V46
         (function migrate() {
-            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem(OLD_STORE.CONF)) {
-                console.log("Migrating data...");
-                localStorage.setItem(STORE.CONF, localStorage.getItem(OLD_STORE.CONF));
-                localStorage.setItem(STORE.LOGS, localStorage.getItem(OLD_STORE.LOGS));
-                localStorage.setItem(STORE.USER, localStorage.getItem(OLD_STORE.USER));
-                localStorage.setItem(STORE.THEME, localStorage.getItem(OLD_STORE.THEME));
+            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem('h45_conf')) {
+                localStorage.setItem(STORE.CONF, localStorage.getItem('h45_conf'));
+                localStorage.setItem(STORE.LOGS, localStorage.getItem('h45_logs'));
+                localStorage.setItem(STORE.USER, localStorage.getItem('h45_user'));
+                localStorage.setItem(STORE.THEME, localStorage.getItem('h45_dark'));
             }
         })();
 
         function getSafe(key, def) {
-            try {
-                const item = localStorage.getItem(key);
-                if(!item || item === "undefined") return def;
-                return JSON.parse(item);
-            } catch(e) { return def; }
+            try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; }
         }
 
         // --- 2. STATE ---
@@ -83,7 +75,7 @@
         
         let state = {
             week: 0,
-            view: 'plan',
+            view: 'plan', // 'plan' | 'stats' | 'mobility'
             statsSubView: 'overview',
             selectedExercise: null,
             selDay: null,
@@ -93,13 +85,10 @@
             darkMode: getSafe(STORE.THEME, false)
         };
 
-        // Self Repair
         (function repairState() {
             if(!Array.isArray(state.configs)) state.configs = defaultConfigs;
             for(let i=0; i<14; i++) {
-                if(!state.configs[i] || typeof state.configs[i] !== 'object') {
-                    state.configs[i] = { uni: ['Montag','Donnerstag'], vol: true, bike: [] };
-                }
+                if(!state.configs[i] || typeof state.configs[i] !== 'object') state.configs[i] = { uni: ['Montag','Donnerstag'], vol: true, bike: [] };
                 if(!Array.isArray(state.configs[i].uni)) state.configs[i].uni = [];
                 if(!Array.isArray(state.configs[i].bike)) state.configs[i].bike = [];
             }
@@ -123,7 +112,8 @@
             left: icon('<polyline points="15 18 9 12 15 6"/>', 'text-slate-500 dark:text-slate-400'),
             right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400'),
             dl: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', 'text-white'),
-            ul: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', 'text-white')
+            ul: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', 'text-white'),
+            yoga: icon('<circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 12.3-.9 5.7 6.4 1.1"/><path d="m22 17-6-1.1-2.9-5.3a2 2 0 0 0-2.8-.7L4.1 13.1"/><path d="m2 17 5.4-1.1"/>', 'text-emerald-600 dark:text-emerald-400')
         };
         const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const splits = {
@@ -134,6 +124,15 @@
             Legs: { t: "Gym: Beine", d: "Unterkörper Fokus", ex: ["Beinpresse", "Ausfallschritte", "Beinstrecker", "Beinbeuger", "Waden"] },
             Full: { t: "Gym: Ganzkörper", d: "Erhalt & Maschinen", ex: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse", "Rückenstrecker"] }
         };
+
+        const mobilityRoutine = [
+            { n: "90/90 Hüftwechsel", d: "10 pro Seite. Öffnet die Hüfte." },
+            { n: "World's Greatest Stretch", d: "5 pro Seite. Ganzkörper." },
+            { n: "Cat-Cow", d: "10 Wdh. Wirbelsäule mobilisieren." },
+            { n: "Ankle Rocks", d: "10 pro Seite. Sprunggelenk." },
+            { n: "Deep Squat Hold", d: "30-60 Sek. halten." },
+            { n: "Couch Stretch", d: "30 Sek pro Seite. Hüftbeuger." }
+        ];
 
         // --- 4. LOGIC ---
         function getPhaseInfo(w) {
@@ -164,15 +163,22 @@
             const days = Array(7).fill(null);
             const factor = getAdaptFactor(wIdx);
 
+            const baseLongRuns = [7, 8, 10, 7, 12, 14, 15, 10, 16, 17, 18, 12, 8, 21.1];
+            const baseEasyRuns = [5, 5, 6, 4, 6, 7, 7, 5, 8, 8, 8, 6, 4, 3];
+
+            let lrDist = baseLongRuns[wIdx];
+            let easyDist = baseEasyRuns[wIdx];
+
+            if (wIdx < 13) {
+                lrDist = (lrDist * factor).toFixed(1);
+                easyDist = (easyDist * factor).toFixed(1);
+            }
+
             if (cfg.vol) days[1] = { type: 'vol', title: "Volleyball", desc: "HIIT Ersatz & Sprungkraft", id: `w${wIdx}d1` };
 
-            let lrDist = (wIdx === 11 ? 18.0 : Math.min(7 + wIdx * 1.0, 17.0));
-            if (wIdx === 13) lrDist = 21.1; 
-            if (wIdx === 12) lrDist = 10.0;
-            if (wIdx < 12) lrDist = (lrDist * factor).toFixed(1);
-            else if (wIdx !== 13) lrDist = lrDist.toFixed(1);
-
-            const lr = { type: 'run', subtype: 'long', title: wIdx===13 ? "HALBMARATHON" : `Long Run (${lrDist} km)`, desc: "Zone 2" };
+            const lrTitle = wIdx === 13 ? "HALBMARATHON 🏁" : `Long Run (${lrDist} km)`;
+            const lrDesc = wIdx === 3 || wIdx === 7 ? "Cutback Week: Erholung!" : "Zone 2 (langsam)";
+            const lr = { type: 'run', subtype: 'long', title: lrTitle, desc: lrDesc };
             if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` }; else days[5] = { ...lr, id: `w${wIdx}d5` };
 
             const availGym = cfg.uni ? cfg.uni.filter(d => days[weekDays.indexOf(d)] === null) : [];
@@ -184,7 +190,7 @@
                 let wo = splits.Full;
                 if (gymCount === 2) wo = (placed === 0) ? splits.Upper : splits.Lower;
                 if (gymCount === 3) wo = [splits.Push, splits.Pull, splits.Legs][placed];
-                if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Erhalt", desc: "Leicht." };
+                if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Mobility & Core", desc: "Tapering", ex: ["Planks", "Stretching", "Leichte Kniebeugen", "Facepulls"] };
                 days[idx] = { type: 'gym', ...wo, id: `w${wIdx}d${idx}` };
                 placed++;
             });
@@ -206,10 +212,12 @@
                 for (let i=0; i<7; i++) { const s = score(i); if(s>max) { max=s; best=i; } }
                 if(best === -1) break;
                 
-                let dist = (Math.min(5 + wIdx * 0.5, 9) * factor).toFixed(1);
-                if (wIdx >= 12) dist = 5; if (wIdx === 13) dist = 3;
-                let wo = { type: 'run', subtype: 'easy', title: `Easy Run (${dist} km)`, desc: "Locker" };
-                if (cfg.bike && cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Cardio" };
+                let runTitle = `Easy Run (${easyDist} km)`;
+                let runDesc = "Locker (Zone 2)";
+                if (wIdx > 4 && wIdx < 12 && needed === 1) runDesc = "Inkl. 4x 100m Steigerung";
+
+                let wo = { type: 'run', subtype: 'easy', title: runTitle, desc: runDesc };
+                if (cfg.bike && cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Active Recovery (Z1)" };
                 days[best] = { ...wo, id: `w${wIdx}d${best}` };
                 needed--;
             }
@@ -218,13 +226,11 @@
             return days.map(d => ({ ...d, done: state.logs[d.id]?.done, title: d.title||d.t, desc: d.desc||d.d, exercises: d.exercises||d.ex }));
         }
 
-        // --- 5. HISTORY HELPER ---
         function getHistory(type, name, currentId) {
             try {
                 const wMatch = currentId.match(/w(\d+)/);
                 const dMatch = currentId.match(/d(\d+)/);
                 if (!wMatch || !dMatch) return null;
-
                 const currW = parseInt(wMatch[1]);
                 const currD = parseInt(dMatch[1]);
 
@@ -234,18 +240,14 @@
                         const id = `w${w}d${d}`;
                         const log = state.logs[id];
                         if (!log) continue;
-
                         if (type === 'gym' && log.exercises && log.exercises[name]) {
                             const sets = log.exercises[name];
                             if (sets.some(s => s.w)) return sets;
                         }
-
-                        if (type === 'run' && log.run && log.run.dist && log.run.time) {
-                            return log.run;
-                        }
+                        if (type === 'run' && log.run && log.run.dist && log.run.time) return log.run;
                     }
                 }
-            } catch (e) { console.log(e); }
+            } catch (e) { }
             return null;
         }
 
@@ -269,25 +271,72 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     if(data.conf && data.logs) {
-                        if(confirm('Achtung: Alle aktuellen Daten werden überschrieben. Fortfahren?')) {
+                        if(confirm('Daten überschreiben?')) {
                             localStorage.setItem(STORE.CONF, JSON.stringify(data.conf));
                             localStorage.setItem(STORE.LOGS, JSON.stringify(data.logs));
                             localStorage.setItem(STORE.USER, JSON.stringify(data.user || { maxHR: 190 }));
                             localStorage.setItem(STORE.THEME, JSON.stringify(data.theme || false));
-                            alert('Daten erfolgreich importiert!');
+                            alert('Import erfolgreich!');
                             location.reload();
                         }
-                    } else {
-                        alert('Ungültige Backup-Datei.');
-                    }
-                } catch(err) {
-                    alert('Fehler beim Lesen der Datei.');
-                }
+                    } else alert('Ungültige Datei.');
+                } catch(err) { alert('Fehler beim Lesen.'); }
             };
             reader.readAsText(file);
         };
 
-        // --- 7. RENDERER ---
+        // --- 7. MOBILITY LOGIC (NO-DATE) ---
+        function getMobKey(w, dIdx) { return `mob_w${w}_d${dIdx}`; }
+
+        function calculateTotalMobility() {
+            let total = 0;
+            for(const key in state.logs) {
+                if(key.startsWith('mob_w') && Array.isArray(state.logs[key])) {
+                    if(state.logs[key].length >= 5) total++;
+                }
+            }
+            return total;
+        }
+
+        window.openMobilityDay = (w, dIdx) => {
+            const key = getMobKey(w, dIdx);
+            const doneList = state.logs[key] || [];
+            
+            // Generic Day Name
+            const dayTitle = `Mobility: ${weekDays[dIdx]}`;
+            
+            document.getElementById('modal-title').innerText = dayTitle;
+            let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">Routine für ${weekDays[dIdx]} (Woche ${w+1})</p><div class="space-y-3">`;
+            
+            mobilityRoutine.forEach((ex, i) => {
+                const isChecked = doneList.includes(i);
+                html += `
+                <div onclick="window.toggleMobilityCheck('${key}', ${i}, ${w}, ${dIdx})" class="flex items-center p-3 rounded-xl border cursor-pointer ${isChecked ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-700'}">
+                    <div class="w-6 h-6 rounded flex items-center justify-center mr-4 border ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-500'}">
+                        ${isChecked ? I.check : ''}
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm dark:text-white ${isChecked ? 'line-through opacity-50' : ''}">${ex.n}</div>
+                        <div class="text-[10px] opacity-60 dark:text-slate-400">${ex.d}</div>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+            
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="window.closeModal(); window.render()" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm">Fertig</button>`;
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        window.toggleMobilityCheck = (key, exIdx, w, dIdx) => {
+            if(!state.logs[key]) state.logs[key] = [];
+            if(state.logs[key].includes(exIdx)) state.logs[key] = state.logs[key].filter(i => i!==exIdx);
+            else state.logs[key].push(exIdx);
+            save();
+            window.openMobilityDay(w, dIdx); // Refresh Modal
+        };
+
+        // --- 8. RENDERER ---
         window.render = function() {
             try {
                 const app = document.getElementById('app');
@@ -296,18 +345,34 @@
 
                 const phase = getPhaseInfo(state.week);
 
+                // HEADER FIX: One Card, Tight Spacing
                 let html = `
-                    <div class="flex justify-between items-center mb-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
-                        <div><h1 class="text-xl font-bold dark:text-white">Hybrid Coach</h1><div class="text-xs opacity-60 dark:text-slate-400">14 Wochen Plan</div></div>
-                        <button onclick="window.toggleTheme()" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">${state.darkMode ? I.sun : I.moon}</button>
-                    </div>
-                    <div class="mb-6 p-4 rounded-xl shadow-sm border flex items-start gap-4 bg-white dark:bg-slate-900 dark:border-slate-800">
-                        <div class="p-2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">${I.gym}</div>
-                        <div>
-                            <h3 class="font-bold text-sm mb-1 dark:text-white">${phase.t}: Woche ${state.week + 1}</h3>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">${phase.d}</p>
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-3 mb-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h1 class="text-xl font-bold dark:text-white leading-none mb-1">Hybrid Coach</h1>
+                                <div class="text-xs opacity-60 dark:text-slate-400 leading-none">14 Wochen Plan</div>
+                            </div>
+                            <button onclick="window.toggleTheme()" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">${state.darkMode ? I.sun : I.moon}</button>
                         </div>
+
+                        ${state.view === 'plan' ? `
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg flex items-center gap-3">
+                            <div class="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">${I.gym}</div>
+                            <div>
+                                <h3 class="font-bold text-sm dark:text-white leading-tight mb-0.5">${phase.t}: Woche ${state.week + 1}</h3>
+                                <p class="text-xs opacity-70 dark:text-slate-400 leading-tight">${phase.d}</p>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
+                `;
+
+                // SMART BUTTON LOGIC
+                const isMob = state.view === 'mobility';
+                
+                // UNIFIED NAVIGATION
+                html += `
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-800">
                             <button onclick="window.changeWeek(-1)" class="p-2">${I.left}</button>
@@ -316,12 +381,62 @@
                         </div>
                         <div class="flex gap-2">
                             <button onclick="window.openSetup()" class="bg-slate-900 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Setup</button>
-                            <button onclick="window.toggleView()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">${state.view==='plan' ? I.chart : I.plan}</button>
+                            
+                            <button onclick="state.view='${isMob ? 'plan' : 'mobility'}'; window.render()" 
+                                    class="${isMob ? 'bg-indigo-600' : 'bg-emerald-500'} text-white px-3 py-2 rounded-lg text-xs font-bold flex gap-1 items-center">
+                                ${isMob ? I.plan : I.yoga} ${isMob ? 'Training' : 'Mob'}
+                            </button>
+
+                            <button onclick="state.view='plan'; window.toggleView()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold">${state.view==='plan' ? I.chart : I.plan}</button>
                         </div>
                     </div>
                 `;
 
-                if (state.view === 'plan') {
+                // --- VIEWS ---
+                if (state.view === 'mobility') {
+                    const totalSessions = calculateTotalMobility();
+                    
+                    html += `
+                        <div class="fade-in">
+                            <div class="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 flex justify-between items-center">
+                                <div>
+                                    <h2 class="font-bold text-lg text-emerald-800 dark:text-emerald-400 leading-tight">Mobility</h2>
+                                    <p class="text-xs text-emerald-600 dark:text-emerald-500 leading-tight">Woche ${state.week + 1}</p>
+                                </div>
+                                <div class="text-center bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm">
+                                    <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">${totalSessions}</div>
+                                    <div class="text-[10px] uppercase font-bold opacity-60 dark:text-slate-400">Total</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                ${Array(7).fill(0).map((_, i) => {
+                                    const key = getMobKey(state.week, i);
+                                    const doneCount = state.logs[key] ? state.logs[key].length : 0;
+                                    const total = mobilityRoutine.length;
+                                    const isDone = doneCount >= 5; 
+                                    const dayLabel = weekDays[i].substring(0,2).toUpperCase();
+
+                                    return `
+                                    <div onclick="window.openMobilityDay(${state.week}, ${i})" class="flex items-center p-3 rounded-xl border cursor-pointer transition-all ${isDone ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10' : 'bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800'}">
+                                        <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500 text-center flex items-center justify-center h-full">
+                                            <div>${dayLabel}</div>
+                                        </div>
+                                        <div class="flex-1 ml-4">
+                                            <div class="font-bold text-sm dark:text-white">Tägliche Routine</div>
+                                            <div class="text-xs opacity-60 dark:text-slate-400">${doneCount} / ${total} Übungen</div>
+                                        </div>
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${isDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}">
+                                            ${isDone ? I.check : I.yoga}
+                                        </div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+
+                } else if (state.view === 'plan') {
+                    
                     const factor = getAdaptFactor(state.week);
                     if(factor !== 1.0) {
                         html += `<div class="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-700 flex gap-2 items-center">${I.brain} AI: ${factor > 1 ? '+10%' : '-10%'} Volumen</div>`;
@@ -356,10 +471,10 @@
             } catch(e) { console.error(e); document.getElementById('error-msg').style.display = 'block'; }
         }
 
+        // --- STATS ---
         function renderStats() {
             let gymData = [], runData = [];
             let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
-
             for(let w=0; w<=state.week; w++) {
                 let v=0, d=0;
                 for(let k in state.logs) {
@@ -376,17 +491,15 @@
                 totalKg += v; totalKm += d;
                 gymData.push(v); runData.push(d);
             }
-            
             const maxGym = Math.max(...gymData, 1);
             const maxRun = Math.max(...runData, 1);
 
             let html = `
                 <div class="fade-in space-y-6">
-                    <div class="flex justify-between items-center mb-4"><button onclick="state.view='plan';window.render()" class="text-sm font-bold flex items-center gap-1 opacity-60 dark:text-slate-400">${I.left} Zurück</button>
-                    <div class="flex bg-white dark:bg-slate-900 p-1 rounded-lg border dark:border-slate-800">
-                        <button onclick="state.statsSubView='overview';window.render()" class="px-3 py-1 text-xs font-bold rounded ${state.statsSubView==='overview'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Übersicht</button>
-                        <button onclick="state.statsSubView='details';window.render()" class="px-3 py-1 text-xs font-bold rounded ${state.statsSubView==='details'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Details</button>
-                    </div></div>
+                    <div class="flex bg-white dark:bg-slate-900 p-1 rounded-lg border dark:border-slate-800 mb-4">
+                        <button onclick="state.statsSubView='overview';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView==='overview'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Übersicht</button>
+                        <button onclick="state.statsSubView='details';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView==='details'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Details</button>
+                    </div>
             `;
 
             if(state.statsSubView === 'overview') {
@@ -500,7 +613,7 @@
             return html;
         }
 
-        // --- ACTIONS ---
+        // --- GLOBAL ACTIONS ---
         window.changeWeek = (d) => { state.week = Math.max(0, Math.min(13, state.week + d)); window.render(); }
         window.toggleTheme = () => { state.darkMode = !state.darkMode; save('THEME', state.darkMode); window.render(); }
         window.toggleView = () => { state.view = state.view === 'plan' ? 'stats' : 'plan'; window.render(); }
@@ -538,7 +651,6 @@
                             const weights = hist.map(s => s.w || '-').join(' / ');
                             histText = `<div class="text-xs text-blue-500 dark:text-blue-400 mb-1">Letztes Mal: ${weights} kg</div>`;
                         }
-
                         html += `<div class="mb-4 pb-2 border-b dark:border-slate-800">
                             <div class="flex justify-between items-baseline mb-2"><div class="text-sm font-bold dark:text-white">${ex}</div></div>
                             ${histText}
@@ -619,41 +731,34 @@
             state.logs[id].exercises[k][idx][f] = v;
             save();
         };
-
         window.logRun = (id, f, v) => {
             if(!state.logs[id]) state.logs[id] = { run: {} };
             if(!state.logs[id].run) state.logs[id].run = {};
             state.logs[id].run[f] = v;
             save();
         };
-
         window.finishDay = (id) => {
             if(!state.logs[id]) state.logs[id] = {};
             state.logs[id].done = true;
             save(); window.closeModal();
         };
-
         window.saveHR = (v) => { state.user.maxHR = v; save(); };
         window.toggleUni = (d) => { 
             if(!state.configs[state.week].uni) state.configs[state.week].uni = [];
             const list = state.configs[state.week].uni; 
-            if(list.includes(d)) state.configs[state.week].uni = list.filter(x=>x!==d); 
-            else state.configs[state.week].uni.push(d); 
+            if(list.includes(d)) state.configs[state.week].uni = list.filter(x=>x!==d); else state.configs[state.week].uni.push(d); 
             save(); window.openSetup(); 
         };
         window.toggleVol = () => { state.configs[state.week].vol = !state.configs[state.week].vol; save(); window.openSetup(); };
         window.toggleBike = (id) => { 
             if(!state.configs[state.week].bike) state.configs[state.week].bike = [];
             const list = state.configs[state.week].bike; 
-            if(list.includes(id)) state.configs[state.week].bike = list.filter(x=>x!==id); 
-            else state.configs[state.week].bike.push(id); 
+            if(list.includes(id)) state.configs[state.week].bike = list.filter(x=>x!==id); else state.configs[state.week].bike.push(id); 
             save(); window.closeModal(); window.render(); 
         };
 
         // --- INIT ---
-        window.onload = function() {
-            setTimeout(window.render, 10);
-        };
+        window.onload = function() { setTimeout(window.render, 10); };
     </script>
 </body>
 </html>
