@@ -1,46 +1,154 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hybrid Coach V50 Antigravity & AI</title>
-    
+    <title>Hybrid Coach – Dein intelligenter Trainingspartner</title>
+    <meta name="description"
+        content="KI-gesteuerter Hybrid-Trainingsplan für Laufen, Gym und mehr. Erstelle deinen personalisierten Plan.">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>try { tailwind.config = { darkMode: 'class' }; } catch(e) {}</script>
+    <script>try { tailwind.config = { darkMode: 'class' }; } catch (e) { }</script>
 
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .dark body { background-color: #020617; color: #f1f5f9; }
-        
-        /* Interactive Background Canvas */
-        #antigravity-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; opacity: 0.6; transition: opacity 0.5s; }
-        .dark #antigravity-canvas { opacity: 0.3; }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
 
-        #app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 120px; min-height: 100vh; position: relative; z-index: 1; }
-        
-        /* Modals */
-        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
-        #modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        .dark #modal-content { background: #1e293b; color: white; border: 1px solid #334155; }
-        #modal-body { overflow-y: auto; padding: 20px; }
-        
-        /* Onboarding Fullscreen */
-        #onboarding-overlay { position: fixed; inset: 0; z-index: 200; display: none; flex-direction: column; overflow-y: auto; backdrop-filter: blur(10px); }
-        
-        /* Tooltip & Anim */
-        .chart-group:hover .tooltip { opacity: 1; }
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Loading Spinner */
-        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; width: 20px; height: 20px; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .dark body {
+            background-color: #020617;
+            color: #f1f5f9;
+        }
 
-        /* Custom Select */
-        .swap-select { appearance: none; background-color: transparent; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; padding-right: 15px; }
-        #error-msg { display: none; position: fixed; inset: 0; background: #0f172a; color: white; z-index: 999; padding: 40px; text-align: center; }
+        #antigravity-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.6;
+            transition: opacity 0.5s;
+        }
+
+        .dark #antigravity-canvas {
+            opacity: 0.3;
+        }
+
+        #app {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-bottom: 120px;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        #modal-content {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .dark #modal-content {
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+        }
+
+        #modal-body {
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-group:hover .tooltip {
+            opacity: 1 !important;
+        }
+
+        .chart-group .tooltip.opacity-100 {
+            opacity: 1 !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #error-msg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            color: white;
+            z-index: 999;
+            padding: 40px;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
     <canvas id="antigravity-canvas"></canvas>
@@ -49,675 +157,66 @@
 
     <div id="error-msg">
         <h1 class="text-2xl font-bold mb-4">Ups!</h1>
-        <button onclick="localStorage.clear(); location.reload()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App Reset</button>
+        <button onclick="localStorage.clear(); location.reload()"
+            class="bg-red-500 text-white px-6 py-3 rounded-xl font-bold">App Reset</button>
     </div>
 
-    <div id="onboarding-overlay" class="bg-slate-50/95 dark:bg-slate-950/95 p-6">
-        <div class="max-w-[400px] mx-auto w-full mt-8 fade-in">
-            <h1 class="text-3xl font-bold mb-2 dark:text-white leading-tight">Willkommen beim<br><span class="text-blue-600 dark:text-blue-400">Hybrid Coach</span></h1>
-            <p class="mb-8 text-sm opacity-70 dark:text-slate-400">Lass uns dein Training personalisieren.</p>
-            
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold opacity-60 mb-1 dark:text-slate-400">Erfahrungslevel</label>
-                    <select id="ob-fit" class="w-full p-3 rounded-xl border dark:bg-slate-900 dark:border-slate-800 dark:text-white">
-                        <option value="Beginner">Anfänger (0-1 Jahr)</option>
-                        <option value="Intermediate">Fortgeschritten (1-3 Jahre)</option>
-                        <option value="Pro">Profi (3+ Jahre)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold opacity-60 mb-1 dark:text-slate-400">Primäres Ziel</label>
-                    <select id="ob-goal" class="w-full p-3 rounded-xl border dark:bg-slate-900 dark:border-slate-800 dark:text-white">
-                        <option value="Halbmarathon">Halbmarathon</option>
-                        <option value="10k Lauf">10k Lauf</option>
-                        <option value="Marathon">Marathon</option>
-                        <option value="Allgemeine Fitness">Allgemeine Fitness (Hybrid)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold opacity-60 mb-1 dark:text-slate-400">Zieldatum / Renntag (Optional)</label>
-                    <input type="date" id="ob-date" class="w-full p-3 rounded-xl border dark:bg-slate-900 dark:border-slate-800 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold opacity-60 mb-1 dark:text-slate-400">Max Herzfrequenz</label>
-                    <input type="number" id="ob-hr" value="190" class="w-full p-3 rounded-xl border dark:bg-slate-900 dark:border-slate-800 dark:text-white">
-                </div>
-                <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                    <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">✨ Gemini API Key</label>
-                    <p class="text-[10px] text-indigo-600 dark:text-indigo-500 mb-2">Erforderlich für dynamische KI-Planung & Analysen.</p>
-                    <input type="password" id="ob-api" placeholder="API Key einfügen..." class="w-full p-2 text-sm rounded border dark:bg-slate-900 dark:border-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" style="display:none"
+        class="fixed inset-0 z-[1000] flex flex-col items-center justify-center">
+        <!-- THEME TOGGLE FOR SPLASH -->
+        <button onclick="window.toggleTheme()"
+            class="absolute top-6 right-6 p-4 bg-slate-200/50 dark:bg-slate-800/80 backdrop-blur-md rounded-full z-[1010] shadow-sm text-xl hover:scale-110 transition-transform">
+            <span id="splash-theme-icon">🌓</span>
+        </button>
+        <div class="text-center fade-in relative z-10">
+            <div class="text-6xl font-black mb-2 tracking-tight">
+                <span
+                    class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">Hybrid</span>
             </div>
-            <button onclick="window.saveOnboarding()" class="w-full mt-8 bg-blue-600 hover:bg-blue-500 transition-colors text-white p-4 rounded-xl font-bold text-lg shadow-lg">Starten</button>
+            <div class="text-5xl font-black tracking-tight dark:text-white">
+                Trainer
+            </div>
+            <p class="mt-4 text-sm opacity-50 dark:text-slate-400 font-medium">Dein intelligenter Trainingspartner</p>
+            <button onclick="window.startOnboarding()"
+                class="mt-10 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/25 transition-all active:scale-95">Get
+                Started →</button>
         </div>
     </div>
 
-    <div id="app">Loading...</div>
+    <!-- ONBOARDING (Multi-Step) -->
+    <div id="onboarding-overlay" style="display:none" class="fixed inset-0 z-[999] overflow-y-auto">
+        <div class="max-w-[420px] mx-auto w-full p-6 pt-12 fade-in relative z-10">
+            <div id="ob-steps" class="flex gap-2 mb-8"></div>
+            <div id="ob-content"></div>
+        </div>
+    </div>
+
+    <div id="app"></div>
 
     <div id="modal-overlay" onclick="window.closeModal()">
         <div id="modal-content" onclick="event.stopPropagation()">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shadow-md">
                 <h3 id="modal-title" class="font-bold text-lg">Details</h3>
-                <button onclick="window.closeModal()" class="text-2xl leading-none opacity-80 hover:opacity-100">&times;</button>
+                <button onclick="window.closeModal()"
+                    class="text-2xl leading-none opacity-80 hover:opacity-100">&times;</button>
             </div>
             <div id="modal-body"></div>
             <div id="modal-footer" class="p-4 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900"></div>
         </div>
     </div>
 
-    <script>
-        window.onerror = function() { document.getElementById('error-msg').style.display = 'block'; };
+    <script>window.onerror = function () { document.getElementById('error-msg').style.display = 'block'; };</script>
 
-        // --- 0. ANTIGRAVITY ENGINE ---
-        const canvas = document.getElementById('antigravity-canvas');
-        const ctx = canvas.getContext('2d');
-        let particlesArray = [];
-        let mouse = { x: null, y: null, radius: 80 };
-
-        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
-        window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
-        window.addEventListener('touchmove', (event) => { mouse.x = event.touches[0].clientX; mouse.y = event.touches[0].clientY; });
-        window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
-        window.addEventListener('touchend', () => { mouse.x = undefined; mouse.y = undefined; });
-
-        class Particle {
-            constructor(x, y, size, speedY) {
-                this.x = x; this.y = y; this.size = size;
-                this.baseX = this.x; this.baseY = this.y;
-                this.speedY = speedY;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = state.darkMode ? 'rgba(96, 165, 250, 0.2)' : 'rgba(59, 130, 246, 0.15)';
-                ctx.fill();
-            }
-            update() {
-                this.y -= this.speedY; // Antigravity (float up)
-                if (this.y < 0 - this.size) { this.y = canvas.height + this.size; this.x = Math.random() * canvas.width; }
-                
-                // Mouse interaction
-                if(mouse.x != null) {
-                    let dx = mouse.x - this.x;
-                    let dy = mouse.y - this.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < mouse.radius) {
-                        const forceDirectionX = dx / distance;
-                        const forceDirectionY = dy / distance;
-                        const force = (mouse.radius - distance) / mouse.radius;
-                        this.x -= forceDirectionX * force * 5;
-                        this.y -= forceDirectionY * force * 5;
-                    }
-                }
-                this.draw();
-            }
-        }
-
-        function initParticles() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            particlesArray = [];
-            const numberOfParticles = (canvas.width * canvas.height) / 15000; // Density
-            for (let i = 0; i < numberOfParticles; i++) {
-                let size = (Math.random() * 3) + 1;
-                let x = Math.random() * canvas.width;
-                let y = Math.random() * canvas.height;
-                let speedY = (Math.random() * 0.5) + 0.2;
-                particlesArray.push(new Particle(x, y, size, speedY));
-            }
-        }
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
-            requestAnimationFrame(animateParticles);
-        }
-
-        // --- 1. CONFIG & MIGRATION ---
-        const STORE = { CONF: 'h50_conf', LOGS: 'h50_logs', USER: 'h50_user', THEME: 'h50_dark' };
-        
-        (function migrate() {
-            if(!localStorage.getItem(STORE.CONF) && localStorage.getItem('h49_conf')) {
-                localStorage.setItem(STORE.CONF, localStorage.getItem('h49_conf') || localStorage.getItem('h48_conf'));
-                localStorage.setItem(STORE.LOGS, localStorage.getItem('h49_logs') || localStorage.getItem('h48_logs'));
-                localStorage.setItem(STORE.USER, localStorage.getItem('h49_user') || localStorage.getItem('h48_user'));
-                localStorage.setItem(STORE.THEME, localStorage.getItem('h49_dark') || localStorage.getItem('h48_dark'));
-            }
-        })();
-
-        function getSafe(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } }
-
-        // --- 2. STATE ---
-        const defaultConfigs = Array(14).fill(null).map(() => ({ uni: ['Montag','Donnerstag'], vol: true, bike: [], aiPlan: null }));
-        
-        let state = {
-            week: 0, view: 'plan', statsSubView: 'overview', selectedExercise: null, selDay: null,
-            configs: getSafe(STORE.CONF, defaultConfigs),
-            logs: getSafe(STORE.LOGS, {}),
-            user: getSafe(STORE.USER, { initialized: false, maxHR: 190, fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', apiKey: '' }),
-            darkMode: getSafe(STORE.THEME, false)
-        };
-
-        (function repairState() {
-            if(!Array.isArray(state.configs)) state.configs = defaultConfigs;
-            for(let i=0; i<14; i++) {
-                if(!state.configs[i] || typeof state.configs[i] !== 'object') state.configs[i] = { uni: ['Montag','Donnerstag'], vol: true, bike: [], aiPlan: null };
-                if(!Array.isArray(state.configs[i].uni)) state.configs[i].uni = [];
-                if(!Array.isArray(state.configs[i].bike)) state.configs[i].bike = [];
-            }
-        })();
-
-        const exAlternatives = {
-            "Bankdrücken (Maschine)": ["Kurzhantel Bankdrücken", "Liegestütze", "Brustpresse"], "Rudern": ["Kabelrudern", "Kurzhantel Rudern", "T-Bar Rudern", "Klimmzüge"],
-            "Schulterpresse": ["Military Press", "Kurzhantel Schulterdrücken", "Seitheben"], "Latzug": ["Klimmzüge", "Assisted Pull-ups", "Überzüge", "Rudern"],
-            "Trizeps Kabel": ["Trizepsdrücken KH", "French Press", "Dips"], "Bizeps Maschine": ["Kurzhantel Curls", "Hammer Curls", "Langhantel Curls"],
-            "Beinpresse 45°": ["Kniebeugen", "Bulgarian Split Squats", "Hackenschmidt"], "Beinstrecker": ["Ausfallschritte", "Sissy Squats"],
-            "Beinbeuger": ["Romanian Deadlifts (RDL)", "Nordic Curls", "Good Mornings"], "Wadenheben": ["Seilspringen", "Wadenheben sitzend"],
-            "Brustpresse": ["Bankdrücken", "Liegestütze"], "Seitheben": ["Aufrechtes Rudern", "Face Pulls"], "Face Pulls": ["Reverse Butterfly", "Vorgebeugtes Seitheben"],
-            "Ausfallschritte": ["Beinpresse", "Kniebeugen"], "Rückenstrecker": ["Hyperextensions", "Good Mornings"]
-        };
-
-        const I = {
-            gym: icon('<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>', 'text-blue-600 dark:text-blue-400'),
-            run: icon('<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 11 8c0 2.85-1.67 5.71-2 8a7 7 0 0 0 2 5.18V22H5a2 2 0 0 1-2-2v-4"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 13 7.8 13 12c0 2.85 1.67 5.71 2 8a7 7 0 0 0-2 5.18V26h6a2 2 0 0 0 2-2v-4"/>', 'text-orange-500 dark:text-orange-400'),
-            bike: icon('<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h-5"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>', 'text-teal-600 dark:text-teal-400'),
-            vol: icon('<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/>', 'text-pink-600 dark:text-pink-400'),
-            rest: icon('<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 'text-slate-400 dark:text-slate-500'),
-            check: icon('<polyline points="20 6 9 17 4 12"/>', 'text-white'),
-            brain: icon('<path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>', 'text-indigo-600 dark:text-indigo-300'),
-            chart: icon('<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>', 'text-slate-600 dark:text-slate-300'),
-            plan: icon('<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 'text-slate-600 dark:text-slate-300'),
-            sun: icon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', 'text-amber-500'),
-            moon: icon('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>', 'text-slate-400'),
-            save: icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>', 'text-white'),
-            left: icon('<polyline points="15 18 9 12 15 6"/>', 'text-slate-500 dark:text-slate-400'),
-            right: icon('<polyline points="9 18 15 12 9 6"/>', 'text-slate-500 dark:text-slate-400'),
-            dl: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', 'text-white'),
-            ul: icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', 'text-white'),
-            yoga: icon('<circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 12.3-.9 5.7 6.4 1.1"/><path d="m22 17-6-1.1-2.9-5.3a2 2 0 0 0-2.8-.7L4.1 13.1"/><path d="m2 17 5.4-1.1"/>', 'text-emerald-600 dark:text-emerald-400'),
-            swap: icon('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>', 'text-slate-400')
-        };
-        const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-        const splits = {
-            Upper: { t: "Gym: Oberkörper", d: "Kraft & Hypertrophie", ex: ["Bankdrücken (Maschine)", "Rudern", "Schulterpresse", "Latzug", "Trizeps Kabel", "Bizeps Maschine"] },
-            Lower: { t: "Gym: Beine", d: "Kraft (Maschine)", ex: ["Beinpresse 45°", "Beinstrecker", "Beinbeuger", "Wadenheben", "Abduktoren", "Adduktoren", "Core"] },
-            Push: { t: "Gym: Push", d: "Brust, Schulter, Trizeps", ex: ["Brustpresse", "Schulterpresse", "Seitheben", "Trizepsdrücken", "Butterfly"] },
-            Pull: { t: "Gym: Pull", d: "Rücken, Bizeps", ex: ["Latzug", "Rudern", "Face Pulls", "Bizeps Curls", "Butterfly Reverse"] },
-            Legs: { t: "Gym: Beine", d: "Unterkörper Fokus", ex: ["Beinpresse", "Ausfallschritte", "Beinstrecker", "Beinbeuger", "Waden"] },
-            Full: { t: "Gym: Ganzkörper", d: "Erhalt & Maschinen", ex: ["Beinpresse", "Brustpresse", "Rudern", "Latzug", "Schulterpresse", "Rückenstrecker"] }
-        };
-
-        const mobilityRoutine = [
-            { n: "90/90 Hüftwechsel", d: "10 pro Seite. Öffnet die Hüfte." }, { n: "World's Greatest Stretch", d: "5 pro Seite. Ganzkörper." },
-            { n: "Cat-Cow", d: "10 Wdh. Wirbelsäule mobilisieren." }, { n: "Ankle Rocks", d: "10 pro Seite. Sprunggelenk." },
-            { n: "Deep Squat Hold", d: "30-60 Sek. halten." }, { n: "Couch Stretch", d: "30 Sek pro Seite. Hüftbeuger." }
-        ];
-
-        // --- 4. LOGIC (WITH AI OVERRIDE) ---
-        function getPhaseInfo(w) {
-            if (w < 5) return { t: "Base Phase", d: "Grundlagenausdauer & Gewöhnung" }; 
-            if (w < 10) return { t: "Build Phase", d: "Steigerung von Volumen & Intensität" }; 
-            if (w < 12) return { t: "Peak Phase", d: "Maximale Belastung vor dem Rennen" }; 
-            if (w === 12) return { t: "Taper Phase", d: "Erholung & Speicher füllen" }; 
-            return { t: "Race Week", d: "Minimale Belastung. Race Day!" }; 
-        }
-
-        function getAdaptFactor(w) {
-            if (w === 0) return 1.0;
-            let sum = 0, cnt = 0; const prefix = `w${w-1}`;
-            for (let k in state.logs) {
-                if (k.startsWith(prefix) && state.logs[k].run && state.logs[k].run.rpe) {
-                    const rpe = parseFloat(state.logs[k].run.rpe); if(!isNaN(rpe)) { sum += rpe; cnt++; }
-                }
-            }
-            if (cnt === 0) return 1.0;
-            const avg = sum / cnt; return avg > 8 ? 0.9 : avg < 4 ? 1.1 : 1.0;
-        }
-
-        function generatePlan(wIdx) {
-            // CHECK FOR AI OVERRIDE
-            if (state.configs[wIdx] && state.configs[wIdx].aiPlan) {
-                return state.configs[wIdx].aiPlan.map(d => ({ ...d, done: state.logs[d.id]?.done }));
-            }
-
-            // DEFAULT MATH LOGIC
-            const cfg = state.configs[wIdx] || { uni: [], vol: true, bike: [] };
-            const days = Array(7).fill(null);
-            const factor = getAdaptFactor(wIdx);
-
-            const baseLongRuns = [7, 8, 10, 7, 12, 14, 15, 10, 16, 17, 18, 12, 8, 21.1];
-            const baseEasyRuns = [5, 5, 6, 4, 6, 7, 7, 5, 8, 8, 8, 6, 4, 3];
-            let lrDist = baseLongRuns[wIdx]; let easyDist = baseEasyRuns[wIdx];
-
-            if (wIdx < 13) { lrDist = (lrDist * factor).toFixed(1); easyDist = (easyDist * factor).toFixed(1); }
-            if (cfg.vol) days[1] = { type: 'vol', title: "Volleyball", desc: "HIIT Ersatz & Sprungkraft", id: `w${wIdx}d1` };
-
-            const lrTitle = wIdx === 13 ? "HALBMARATHON 🏁" : `Long Run (${lrDist} km)`;
-            const lrDesc = wIdx === 3 || wIdx === 7 ? "Cutback Week: Erholung!" : "Zone 2 (langsam)";
-            const lr = { type: 'run', subtype: 'long', title: lrTitle, desc: lrDesc };
-            if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` }; else days[5] = { ...lr, id: `w${wIdx}d5` };
-
-            const availGym = cfg.uni ? cfg.uni.filter(d => days[weekDays.indexOf(d)] === null) : [];
-            const gymCount = availGym.length >= 3 ? 3 : 2; let placed = 0;
-            availGym.forEach(d => {
-                if (placed >= gymCount) return;
-                const idx = weekDays.indexOf(d);
-                let wo = splits.Full;
-                if (gymCount === 2) wo = (placed === 0) ? splits.Upper : splits.Lower;
-                if (gymCount === 3) wo = [splits.Push, splits.Pull, splits.Legs][placed];
-                if (wIdx >= 12) wo = { ...splits.Full, title: "Gym: Mobility & Core", desc: "Tapering", ex: ["Planks", "Stretching", "Leichte Kniebeugen", "Facepulls"] };
-                
-                const baseExercises = wo.ex || [];
-                const dayId = `w${wIdx}d${idx}`;
-                const activeExercises = baseExercises.map((baseEx, eIdx) => state.logs[dayId]?.swaps?.[eIdx] || baseEx);
-                days[idx] = { type: 'gym', ...wo, id: dayId, exercises: activeExercises, baseExercises: baseExercises };
-                placed++;
-            });
-
-            let needed = (cfg.vol ? 2 : 3) - 1; if (wIdx === 13) needed = 1;
-            const score = (i) => {
-                if (days[i]) return -99;
-                let s = 10;
-                if (days[i-1]?.type?.match(/run|vol/)) s -= 5;
-                if (days[i+1]?.type?.match(/run|vol/)) s -= 5;
-                if (days[i-1]?.type === 'gym' && days[i-1].t.includes('Beine')) s -= 3;
-                return s;
-            };
-
-            while (needed > 0) {
-                let best = -1, max = -99;
-                for (let i=0; i<7; i++) { const s = score(i); if(s>max) { max=s; best=i; } }
-                if(best === -1) break;
-                let runTitle = `Easy Run (${easyDist} km)`; let runDesc = "Locker (Zone 2)";
-                if (wIdx > 4 && wIdx < 12 && needed === 1) runDesc = "Inkl. 4x 100m Steigerung";
-                let wo = { type: 'run', subtype: 'easy', title: runTitle, desc: runDesc };
-                if (cfg.bike && cfg.bike.includes(`w${wIdx}d${best}`)) wo = { type: 'bike', title: "Ergometer 45min", desc: "Active Recovery (Z1)" };
-                days[best] = { ...wo, id: `w${wIdx}d${best}` };
-                needed--;
-            }
-
-            for(let i=0; i<7; i++) if(!days[i]) days[i] = { type: 'rest', title: "Recovery", id: `w${wIdx}d${i}` };
-            return days.map(d => ({ ...d, done: state.logs[d.id]?.done, title: d.title||d.t, desc: d.desc||d.d, exercises: d.exercises||d.ex, baseExercises: d.baseExercises }));
-        }
-
-        function getHistory(type, name, currentId) {
-            try {
-                const wMatch = currentId.match(/w(\d+)/); const dMatch = currentId.match(/d(\d+)/);
-                if (!wMatch || !dMatch) return null;
-                const currW = parseInt(wMatch[1]); const currD = parseInt(dMatch[1]);
-                for (let w = currW; w >= 0; w--) {
-                    for (let d = 6; d >= 0; d--) {
-                        if (w === currW && d >= currD) continue;
-                        const id = `w${w}d${d}`; const log = state.logs[id];
-                        if (!log) continue;
-                        if (type === 'gym' && log.exercises && log.exercises[name]) {
-                            const sets = log.exercises[name]; if (sets.some(s => s.w)) return sets;
-                        }
-                        if (type === 'run' && log.run && log.run.dist && log.run.time) return log.run;
-                    }
-                }
-            } catch (e) { }
-            return null;
-        }
-
-        // --- 5. GEMINI AI OVERRIDE ---
-        window.openAIChat = () => {
-            if(!state.user.apiKey) { alert("Bitte hinterlege zuerst deinen Gemini API Key im Setup."); return; }
-            let html = `
-                <div class="mb-4">
-                    <p class="text-sm dark:text-slate-300 mb-2">Wie möchtest du den Plan für <b>Woche ${state.week+1}</b> anpassen?</p>
-                    <textarea id="ai-prompt" rows="3" class="w-full p-3 rounded-xl border dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="z.B. 'Ich bin krank, mach Mo und Di zu Rest Days und schiebe den Long Run auf Samstag...'"></textarea>
-                </div>
-                <div id="ai-loading" class="hidden flex flex-col items-center justify-center py-4">
-                    <div class="spinner border-indigo-500 border-t-indigo-200"></div>
-                    <p class="text-xs mt-2 text-indigo-500 font-bold">KI analysiert und schreibt den Plan um...</p>
-                </div>
-                <button id="ai-submit-btn" onclick="window.fetchAIPlan()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl font-bold flex justify-center items-center gap-2">
-                    ${I.brain} Plan neu generieren
-                </button>
-            `;
-            if (state.configs[state.week] && state.configs[state.week].aiPlan) {
-                html += `<button onclick="window.resetAIPlan()" class="w-full mt-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 p-3 rounded-xl font-bold text-xs">Zurück zum Standard-Algorithmus</button>`;
-            }
-            document.getElementById('modal-title').innerText = `KI Plan-Anpassung`;
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal-footer').innerHTML = '';
-            document.getElementById('modal-overlay').style.display = 'flex';
-        };
-
-        window.resetAIPlan = () => {
-            state.configs[state.week].aiPlan = null;
-            save(); window.closeModal(); window.render();
-        }
-
-        window.fetchAIPlan = async () => {
-            const promptInput = document.getElementById('ai-prompt').value;
-            if(!promptInput) return;
-            
-            document.getElementById('ai-submit-btn').style.display = 'none';
-            document.getElementById('ai-loading').classList.remove('hidden');
-
-            // Prevent infinite override loops, get the BASE plan
-            const tempConfig = {...state.configs[state.week], aiPlan: null};
-            const tempStateConfigs = [...state.configs];
-            tempStateConfigs[state.week] = tempConfig;
-            
-            // Build Context
-            const currentBasePlan = generatePlan(state.week); // This now returns base because aiPlan is temporarily null in logic? Actually generatePlan reads from state. Let's pass a flag or just hardcode the base plan context.
-            // Safer: Build a fresh plan array directly for context
-            const contextPlan = currentBasePlan.map(d => ({id: d.id, type: d.type, title: d.title, desc: d.desc, exercises: d.exercises || []}));
-
-            const systemPrompt = `Du bist ein elitärer Hybrid-Coach. Du modifizierst Trainingspläne basierend auf Nutzeranfragen.
-            Hier ist der Standard-Plan für die aktuelle Woche (Woche ${state.week+1}): 
-            ${JSON.stringify(contextPlan)}
-            
-            Nutzer-Anfrage: "${promptInput}"
-            
-            Regeln:
-            1. Antworte AUSSCHLIESSLICH mit einem JSON-Array, das exakt 7 Objekte (Tag 0 bis 6) enthält.
-            2. Erhalte die "id" Felder (w${state.week}d0 bis w${state.week}d6) exakt so.
-            3. Passe "type", "title", "desc" und "exercises" (Array von Strings, falls gym) sinnvoll an. Erlaubte types: 'gym', 'run', 'vol', 'bike', 'rest'.
-            4. Keine Markdown-Blöcke außer dem reinen JSON. Mache die Wünsche des Nutzers war, bleibe aber sportlich vernünftig.`;
-
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.user.apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
-                });
-
-                const resData = await response.json();
-                if(resData.error) throw new Error(resData.error.message);
-                
-                let textObj = resData.candidates[0].content.parts[0].text;
-                // Regex to extract JSON if Gemini wraps it in ```json ... ```
-                const jsonMatch = textObj.match(/\[[\s\S]*\]/);
-                if(jsonMatch) {
-                    const newPlan = JSON.parse(jsonMatch[0]);
-                    if(Array.isArray(newPlan) && newPlan.length === 7) {
-                        state.configs[state.week].aiPlan = newPlan;
-                        save();
-                        window.closeModal();
-                        window.render();
-                    } else { throw new Error("Formatfehler: KI hat keine 7 Tage generiert."); }
-                } else { throw new Error("JSON nicht gefunden."); }
-
-            } catch(e) {
-                alert("KI Fehler: " + e.message);
-                document.getElementById('ai-submit-btn').style.display = 'flex';
-                document.getElementById('ai-loading').classList.add('hidden');
-            }
-        };
-
-        // --- 6. IMPORT / EXPORT & SETUP ---
-        window.exportData = () => {
-            const data = { conf: state.configs, logs: state.logs, user: state.user, theme: state.darkMode };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `hybrid_coach_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click(); URL.revokeObjectURL(url);
-        };
-
-        window.importData = (input) => {
-            const file = input.files[0]; if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if(data.conf && data.logs) {
-                        if(confirm('Daten überschreiben?')) {
-                            localStorage.setItem(STORE.CONF, JSON.stringify(data.conf));
-                            localStorage.setItem(STORE.LOGS, JSON.stringify(data.logs));
-                            localStorage.setItem(STORE.USER, JSON.stringify(data.user || { maxHR: 190 }));
-                            localStorage.setItem(STORE.THEME, JSON.stringify(data.theme || false));
-                            alert('Import erfolgreich!'); location.reload();
-                        }
-                    } else alert('Ungültige Datei.');
-                } catch(err) { alert('Fehler beim Lesen.'); }
-            }; reader.readAsText(file);
-        };
-
-        window.saveOnboarding = () => {
-            state.user.fitness = document.getElementById('ob-fit').value;
-            state.user.goal = document.getElementById('ob-goal').value;
-            state.user.goalDate = document.getElementById('ob-date').value;
-            state.user.maxHR = parseInt(document.getElementById('ob-hr').value) || 190;
-            state.user.apiKey = document.getElementById('ob-api').value;
-            state.user.initialized = true; save();
-            document.getElementById('onboarding-overlay').style.display = 'none';
-        };
-
-        window.openSetup = () => {
-            const cfg = state.configs[state.week] || { uni: [], vol: true };
-            let html = `<p class="text-xs font-bold opacity-50 mb-2 dark:text-slate-400">UNI TAGE (Gym Prio)</p><div class="grid grid-cols-2 gap-2 mb-6" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">`;
-            weekDays.forEach(d => {
-                const act = cfg.uni.includes(d);
-                html += `<button onclick="window.toggleUni('${d}')" class="p-2 text-xs border rounded ${act ? 'bg-blue-600 text-white border-blue-600' : 'dark:border-slate-700 dark:text-slate-300'}">${d}</button>`;
-            });
-            html += `</div>
-            <div class="mb-4"><label class="text-xs font-bold opacity-60 block mb-1 dark:text-slate-400">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="state.user.maxHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700"></div>
-            <div class="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">✨ Gemini API Key</label>
-                <input type="password" value="${state.user.apiKey || ''}" onchange="state.user.apiKey=this.value; save()" placeholder="Dein API Key..." class="w-full p-2 text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 focus:outline-none">
-            </div>
-            <button onclick="window.toggleVol()" class="w-full p-3 border rounded text-xs font-bold ${cfg.vol ? 'bg-pink-50 text-pink-700 dark:bg-pink-900 dark:text-pink-300' : 'dark:border-slate-700 dark:text-slate-300'}">Volleyball (Di) ${cfg.vol?'AN':'AUS'}</button>
-            <div class="grid grid-cols-2 gap-2 mt-6 mb-6">
-                <button onclick="window.exportData()" class="p-3 rounded-xl bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-2">${I.dl} Backup speichern</button>
-                <button onclick="document.getElementById('import-input').click()" class="p-3 rounded-xl bg-orange-500 text-white text-xs font-bold flex items-center justify-center gap-2">${I.ul} Backup laden</button>
-            </div>
-            <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-2 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
-            document.getElementById('modal-title').innerText = `Setup W${state.week+1}`;
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal-footer').innerHTML = '';
-            document.getElementById('modal-overlay').style.display = 'flex';
-        }
-
-        // --- 7. MOBILITY LOGIC ---
-        function getMobKey(w, dIdx) { return `mob_w${w}_d${dIdx}`; }
-        function calculateTotalMobility() {
-            let total = 0;
-            for(const key in state.logs) {
-                if(key.startsWith('mob_w') && Array.isArray(state.logs[key]) && state.logs[key].length >= 5) total++;
-            } return total;
-        }
-        window.openMobilityDay = (w, dIdx) => {
-            const key = getMobKey(w, dIdx); const doneList = state.logs[key] || [];
-            document.getElementById('modal-title').innerText = `Mobility: ${weekDays[dIdx]}`;
-            let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">Routine für ${weekDays[dIdx]} (Woche ${w+1})</p><div class="space-y-3">`;
-            mobilityRoutine.forEach((ex, i) => {
-                const isChecked = doneList.includes(i);
-                html += `<div onclick="window.toggleMobilityCheck('${key}', ${i}, ${w}, ${dIdx})" class="flex items-center p-3 rounded-xl border cursor-pointer ${isChecked ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-700'}">
-                    <div class="w-6 h-6 rounded flex items-center justify-center mr-4 border ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-500'}">${isChecked ? I.check : ''}</div>
-                    <div><div class="font-bold text-sm dark:text-white ${isChecked ? 'line-through opacity-50' : ''}">${ex.n}</div><div class="text-[10px] opacity-60 dark:text-slate-400">${ex.d}</div></div>
-                </div>`;
-            });
-            html += `</div>`;
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal-footer').innerHTML = `<button onclick="window.closeModal(); window.render()" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm">Fertig</button>`;
-            document.getElementById('modal-overlay').style.display = 'flex';
-        }
-        window.toggleMobilityCheck = (key, exIdx, w, dIdx) => {
-            if(!state.logs[key]) state.logs[key] = [];
-            if(state.logs[key].includes(exIdx)) state.logs[key] = state.logs[key].filter(i => i!==exIdx); else state.logs[key].push(exIdx);
-            save(); window.openMobilityDay(w, dIdx); 
-        };
-
-        // --- 8. RENDERER ---
-        window.render = function() {
-            try {
-                const app = document.getElementById('app');
-                if (state.darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');
-                const phase = getPhaseInfo(state.week);
-
-                let html = `
-                    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-3 mb-6 relative overflow-hidden">
-                        <div class="flex justify-between items-start mb-4">
-                            <div><h1 class="text-xl font-bold dark:text-white leading-none mb-1">Hybrid Coach</h1><div class="text-xs opacity-60 dark:text-slate-400 leading-none">14 Wochen Plan</div></div>
-                            <button onclick="window.toggleTheme()" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full z-10">${state.darkMode ? I.sun : I.moon}</button>
-                        </div>
-                        ${state.view === 'plan' ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg flex items-center gap-3 relative z-10"><div class="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">${I.gym}</div><div><h3 class="font-bold text-sm dark:text-white leading-tight mb-0.5">${phase.t}: Woche ${state.week + 1}</h3><p class="text-xs opacity-70 dark:text-slate-400 leading-tight">${phase.d}</p></div></div>` : ''}
-                    </div>
-                `;
-
-                const isMob = state.view === 'mobility';
-                html += `
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-2 rounded-lg border dark:border-slate-800">
-                            <button onclick="window.changeWeek(-1)" class="p-2">${I.left}</button>
-                            <span class="text-sm font-bold w-12 text-center dark:text-white">W${state.week+1}</span>
-                            <button onclick="window.changeWeek(1)" class="p-2">${I.right}</button>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="window.openSetup()" class="bg-slate-900 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Setup</button>
-                            <button onclick="state.view='${isMob ? 'plan' : 'mobility'}'; window.render()" class="${isMob ? 'bg-indigo-600' : 'bg-emerald-500'} text-white px-3 py-2 rounded-lg text-xs font-bold flex gap-1 items-center shadow-md transition-colors">${isMob ? I.plan : I.yoga} ${isMob ? 'Training' : 'Mob'}</button>
-                            <button onclick="state.view = (state.view === 'stats' ? 'plan' : 'stats'); window.render()" class="bg-white dark:bg-slate-900 border dark:border-slate-800 px-3 py-2 rounded-lg text-xs font-bold shadow-sm">${state.view==='stats' ? I.plan : I.chart}</button>
-                        </div>
-                    </div>
-                `;
-
-                if (state.view === 'mobility') {
-                    const totalSessions = calculateTotalMobility();
-                    html += `<div class="fade-in"><div class="mb-6 p-4 rounded-xl bg-emerald-50/90 dark:bg-emerald-900/40 backdrop-blur-sm border border-emerald-100 dark:border-emerald-800 flex justify-between items-center"><div><h2 class="font-bold text-lg text-emerald-800 dark:text-emerald-400 leading-tight">Mobility</h2><p class="text-xs text-emerald-600 dark:text-emerald-500 leading-tight">Woche ${state.week + 1}</p></div><div class="text-center bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm"><div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">${totalSessions}</div><div class="text-[10px] uppercase font-bold opacity-60 dark:text-slate-400">Total</div></div></div><div class="space-y-3">
-                        ${Array(7).fill(0).map((_, i) => {
-                            const key = getMobKey(state.week, i); const doneCount = state.logs[key] ? state.logs[key].length : 0; const isDone = doneCount >= 5; 
-                            return `<div onclick="window.openMobilityDay(${state.week}, ${i})" class="flex items-center p-3 rounded-xl border cursor-pointer transition-all ${isDone ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm' : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-slate-100 dark:border-slate-800'}"><div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500 text-center flex items-center justify-center h-full"><div>${weekDays[i].substring(0,2).toUpperCase()}</div></div><div class="flex-1 ml-4"><div class="font-bold text-sm dark:text-white">Tägliche Routine</div><div class="text-xs opacity-60 dark:text-slate-400">${doneCount} / ${mobilityRoutine.length} Übungen</div></div><div class="w-8 h-8 rounded-full flex items-center justify-center ${isDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}">${isDone ? I.check : I.yoga}</div></div>`;
-                        }).join('')}</div></div>`;
-                } else if (state.view === 'plan') {
-                    if (state.configs[state.week] && state.configs[state.week].aiPlan) {
-                        html += `<div class="mb-4 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-700 flex gap-2 items-center justify-between"><div>${I.brain} KI-Plan aktiv!</div> <button onclick="window.openAIChat()" class="underline">Ändern</button></div>`;
-                    } else if(state.user.apiKey) {
-                        html += `<button onclick="window.openAIChat()" class="w-full mb-4 p-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 flex gap-2 items-center justify-center transition-colors">${I.brain} Plan mit KI anpassen</button>`;
-                    }
-                    const days = generatePlan(state.week);
-                    html += `<div class="space-y-3 fade-in">`;
-                    days.forEach((day, i) => {
-                        let col = 'border-slate-300'; let icon = I.rest;
-                        if(day.type==='gym') { col = 'border-blue-500'; icon = I.gym; } if(day.type==='run') { col = 'border-orange-500'; icon = I.run; }
-                        if(day.type==='vol') { col = 'border-pink-500'; icon = I.vol; } if(day.type==='bike') { col = 'border-teal-500'; icon = I.bike; }
-                        const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.15)' : 'background:#f0fdf4') : 'background:rgba(255,255,255,0.8)';
-                        const dayJson = encodeURIComponent(JSON.stringify(day));
-                        html += `<div onclick="window.openDay('${dayJson}')" class="flex items-center p-3 rounded-xl border dark:border-slate-800 shadow-sm border-l-4 ${col} dark:border-l-${col.split('-')[1]}-500 dark:bg-slate-900/80 backdrop-blur-sm cursor-pointer ${day.done ? '' : 'opacity-100'}" style="${bg}">
-                            <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500">${weekDays[i].substr(0,2)}</div>
-                            <div class="flex-1"><div class="font-bold text-sm dark:text-white">${day.title}</div>${day.type !== 'rest' ? `<div class="text-xs opacity-60 dark:text-slate-400">${day.desc}</div>` : ''}</div>
-                            <div class="text-slate-300 dark:text-slate-600">${day.done ? `<div class="bg-green-500 rounded-full p-1">${I.check}</div>` : icon}</div>
-                        </div>`;
-                    }); html += `</div>`;
-                } else { html += renderStats(); }
-                app.innerHTML = html;
-            } catch(e) { console.error(e); document.getElementById('error-msg').style.display = 'block'; }
-        }
-
-        function renderStats() {
-            let gymData = [], runData = []; let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
-            for(let w=0; w<=state.week; w++) {
-                let v=0, d=0;
-                for(let k in state.logs) {
-                    if(k.startsWith(`w${w}d`)) {
-                        const l = state.logs[k];
-                        if(l.exercises) Object.values(l.exercises).forEach(s => s.forEach(x => v += (x.w*x.r)||0));
-                        if(l.run) { const dist = parseFloat(l.run.dist)||0; d += dist; if(l.run.rpe) { totalRPE += parseFloat(l.run.rpe); rpeCnt++; } }
-                    }
-                }
-                totalKg += v; totalKm += d; gymData.push(v); runData.push(d);
-            }
-            const maxGym = Math.max(...gymData, 1); const maxRun = Math.max(...runData, 1);
-            let html = `<div class="fade-in space-y-6"><div class="flex bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-1 rounded-lg border dark:border-slate-800 mb-4"><button onclick="state.statsSubView='overview';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView==='overview'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Übersicht</button><button onclick="state.statsSubView='details';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView==='details'?'bg-slate-900 text-white dark:bg-blue-600':'opacity-60 dark:text-slate-400'}">Details</button></div>`;
-            if(state.statsSubView === 'overview') {
-                html += `<div class="grid grid-cols-3 gap-3 mb-4"><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Km</div><div class="font-bold text-lg text-orange-500">${totalKm.toFixed(1)}</div></div><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Tonnen</div><div class="font-bold text-lg text-blue-500">${(totalKg/1000).toFixed(1)}</div></div><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Ø RPE</div><div class="font-bold text-lg text-purple-500">${rpeCnt?(totalRPE/rpeCnt).toFixed(1):'-'}</div></div></div>
-                <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800 mb-4"><h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.gym} Gym Volumen</h3><div class="flex items-end gap-1 h-24">${gymData.map((v,i) => `<div class="flex-1 bg-blue-500 rounded-t" style="height:${(v/maxGym)*100}%; min-height:4px;"></div>`).join('')}</div></div>
-                <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800"><h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.run} Lauf Distanz</h3><div class="flex items-end gap-1 h-24">${runData.map((v,i) => `<div class="flex-1 bg-orange-500 rounded-t" style="height:${(v/maxRun)*100}%; min-height:4px;"></div>`).join('')}</div></div>`;
-            } else {
-                const gymSet = new Set(); Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e))); const gymList = Array.from(gymSet).sort();
-                html += `<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800"><h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3><select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white"><option value="" disabled ${!state.selectedExercise?'selected':''}>Wählen...</option><option value="Long Run" ${state.selectedExercise==='Long Run'?'selected':''}>Long Run (Pace)</option><option value="Easy Run" ${state.selectedExercise==='Easy Run'?'selected':''}>Easy Run (Pace)</option><optgroup label="Gym">${gymList.map(e=>`<option value="${e}" ${state.selectedExercise===e?'selected':''}>${e}</option>`).join('')}</optgroup></select>`;
-                if(state.selectedExercise) {
-                    let hist = [], maxVal = 0;
-                    for(let w=0; w<14; w++) {
-                        const weekPlan = generatePlan(w); let best = 0;
-                        for(let d=0; d<7; d++) {
-                            const l = state.logs[`w${w}d${d}`]; const dayPlan = weekPlan[d]; if(!l) continue;
-                            const k = state.selectedExercise.replace(/\s/g,'');
-                            if(l.exercises && l.exercises[k]) { const m = Math.max(...l.exercises[k].map(s=>parseFloat(s.w)||0)); if(m > best) best = m; }
-                            if(l.run && l.run.dist && l.run.time) {
-                                const dist = parseFloat(l.run.dist); const t = l.run.time.split(':'); const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60);
-                                if(dist > 0 && m > 0) {
-                                    const p = m/dist;
-                                    if(state.selectedExercise === 'Long Run' && dayPlan && dayPlan.subtype === 'long') best = p;
-                                    else if(state.selectedExercise === 'Easy Run' && dayPlan && (dayPlan.subtype === 'easy' || dayPlan.type === 'run' && dayPlan.subtype !== 'long')) best = p;
-                                }
-                            }
-                        }
-                        if(best > maxVal) maxVal = best; hist.push({w: w+1, val: best});
-                    }
-                    const formatVal = (val, type) => { if (type.includes('Run')) { const min = Math.floor(val); const sec = Math.round((val - min) * 60); return `${min}:${sec < 10 ? '0'+sec : sec}`; } return val + ' kg'; }
-                    if(maxVal > 0) {
-                        const h = 100, w = 280; const points = hist.map((d, i) => { const x = (i / (hist.length - 1)) * w; const y = h - ((d.val || 0) / maxVal) * h; return `${x},${y}`; }).join(' ');
-                        html += `<div class="mt-4"><svg width="100%" height="130" viewBox="-10 0 ${w+20} ${h+30}" class="overflow-visible"><polyline points="${points}" class="fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2" />${hist.map((d, i) => {
-                            if(!d.val) return ''; const x = (i / (hist.length - 1)) * w; const y = h - (d.val / maxVal) * h; const lbl = formatVal(d.val, state.selectedExercise);
-                            return `<g class="chart-group" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="15" fill="transparent" /><circle cx="${x}" cy="${y}" r="4" class="dot fill-blue-500 dark:fill-blue-400 transition-all" /><text x="${x}" y="${h+20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${i+1}</text><g class="tooltip opacity-0 transition-opacity duration-200 pointer-events-none"><rect x="${x-20}" y="${y-35}" width="40" height="25" rx="4" fill="#1e293b" /><text x="${x}" y="${y-19}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${lbl}</text><path d="M${x-4},${y-10} L${x+4},${y-10} L${x},${y-6} Z" fill="#1e293b" /></g></g>`;
-                        }).join('')}</svg><div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf 14 Wochen</div></div>`;
-                    } else { html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400">Keine Daten verfügbar</div>`; }
-                }
-                html += `</div>`;
-            } html += `</div>`; return html;
-        }
-
-        // --- GLOBAL ACTIONS ---
-        window.saveSwap = (dayId, eIdx, newExVal) => {
-            if(!state.logs[dayId]) state.logs[dayId] = {};
-            if(!state.logs[dayId].swaps) state.logs[dayId].swaps = {};
-            state.logs[dayId].swaps[eIdx] = newExVal; save();
-            const updatedPlan = generatePlan(state.week).find(d => d.id === dayId); window.openDay(encodeURIComponent(JSON.stringify(updatedPlan)));
-        };
-
-        window.openDay = (json) => {
-            try {
-                const day = JSON.parse(decodeURIComponent(json)); state.selDay = day; 
-                const log = state.logs[day.id] || {}; const run = log.run || { time:'', dist:'', bpm:'', rpe:5 };
-                document.getElementById('modal-title').innerText = day.title;
-                let html = `<p class="text-xs opacity-60 mb-4 dark:text-slate-400">${day.desc}</p>`;
-
-                if (day.type === 'gym') {
-                    day.exercises.forEach((ex, i) => {
-                        const baseEx = day.baseExercises ? day.baseExercises[i] : ex; const k = ex.replace(/\s/g, ''); 
-                        const sets = log.exercises?.[k] || [{w:'',r:''},{w:'',r:''},{w:'',r:''}]; const hist = getHistory('gym', k, day.id);
-                        let histText = ''; if (hist) { const weights = hist.map(s => s.w || '-').join(' / '); histText = `<div class="text-xs text-blue-500 dark:text-blue-400 mb-1">Letztes Mal: ${weights} kg</div>`; }
-                        let alts = exAlternatives[baseEx] || ["Kniebeugen", "Bankdrücken", "Kreuzheben", "Klimmzüge", "Liegestütze"];
-                        let options = Array.from(new Set([baseEx, ...alts, ex])); 
-
-                        html += `<div class="mb-4 pb-2 border-b dark:border-slate-800"><div class="flex justify-between items-baseline mb-2"><div class="flex items-center gap-1 border-b border-dashed border-slate-300 dark:border-slate-600"><select onchange="window.saveSwap('${day.id}', ${i}, this.value)" class="swap-select text-sm font-bold dark:text-white focus:outline-none"><option value="${ex}" selected>${ex}</option>${options.filter(o => o !== ex).map(o => `<option value="${o}">${o}</option>`).join('')}</select><div class="pointer-events-none w-3">${I.swap}</div></div></div>${histText}<div class="flex gap-2">${sets.map((s, idx) => `<div class="flex gap-1"><input type="number" placeholder="kg" class="w-12 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.w}" onchange="window.logGym('${day.id}','${k}',${idx},'w',this.value)"><input type="number" placeholder="rp" class="w-10 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.r}" onchange="window.logGym('${day.id}','${k}',${idx},'r',this.value)"></div>`).join('')}</div></div>`;
-                    });
-                } else if (day.type !== 'rest') {
-                    const hist = getHistory('run', null, day.id); let histText = '';
-                    if (hist) {
-                         const dist = parseFloat(hist.dist); const t = hist.time.split(':'); const m = parseFloat(t[0]) + (parseFloat(t[1]||0)/60); let pace = '-';
-                         if(dist > 0 && m > 0) { const pVal = m/dist; if(isFinite(pVal)) { const min = Math.floor(pVal); const sec = Math.round((pVal - min) * 60); pace = `${min}:${sec < 10 ? '0'+sec : sec}`; } }
-                         histText = `<div class="mb-4 text-xs text-blue-500 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">Letzter Lauf: ${hist.dist}km in ${hist.time} (${pace}/km)</div>`;
-                    }
-                    html += `${histText}<div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div><div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>`;
-                    if(day.subtype==='easy' || day.type==='bike') {
-                        const isBike = state.configs[state.week].bike ? state.configs[state.week].bike.includes(day.id) : false;
-                        html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen ändern' : 'Zu Rad ändern'}</button>`;
-                    }
-                } else { html += `<p class="opacity-60 text-sm dark:text-slate-400">Erhol dich gut!</p>`; }
-                document.getElementById('modal-body').innerHTML = html;
-                document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishDay('${day.id}')" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">${I.save} Speichern & Fertig</button>`;
-                document.getElementById('modal-overlay').style.display = 'flex';
-            } catch (e) { console.error(e); alert('Fehler: ' + e.message); }
-        }
-
-        window.logGym = (id, k, idx, f, v) => {
-            if(!state.logs[id]) state.logs[id] = { exercises: {} }; if(!state.logs[id].exercises) state.logs[id].exercises = {};
-            if(!state.logs[id].exercises[k]) state.logs[id].exercises[k] = [{w:'',r:''},{w:'',r:''},{w:'',r:''}]; state.logs[id].exercises[k][idx][f] = v; save();
-        };
-        window.logRun = (id, f, v) => { if(!state.logs[id]) state.logs[id] = { run: {} }; if(!state.logs[id].run) state.logs[id].run = {}; state.logs[id].run[f] = v; save(); };
-        window.finishDay = (id) => { if(!state.logs[id]) state.logs[id] = {}; state.logs[id].done = true; save(); window.closeModal(); };
-
-        // --- INIT ---
-        window.onload = function() { 
-            initParticles(); animateParticles();
-            if(!state.user.initialized) { document.getElementById('onboarding-overlay').style.display = 'flex'; } 
-            else { setTimeout(window.render, 10); }
-        };
-    </script>
+    <!-- Module (Reihenfolge beachten: Abhängigkeiten zuerst) -->
+    <script src="js/state.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/plan.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script src="js/actions.js"></script>
+    <script src="js/ui.js"></script>
 </body>
+
 </html>
