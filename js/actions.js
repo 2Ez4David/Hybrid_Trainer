@@ -65,10 +65,10 @@ window.changeWeek = (d) => {
     const total = getTotalWeeks(state.user);
     const newWeek = state.week + d;
     if (newWeek >= total) {
-        document.getElementById('modal-title').innerText = '🏆 Ziel erreicht!';
+        document.getElementById('modal-title').innerHTML = '<span class="inline-flex items-center gap-2"><span class="w-6 h-6">' + I.trophy + '</span> Ziel erreicht!</span>';
         document.getElementById('modal-body').innerHTML = `
             <div class="text-center py-6">
-                <div class="text-5xl mb-4">🎉</div>
+                <div class="w-12 h-12 mx-auto mb-4">${I.party}</div>
                 <h3 class="font-bold text-lg dark:text-white mb-2">Du bist am Ende deines Plans!</h3>
                 <p class="text-sm opacity-60 dark:text-slate-400 mb-6">Setze ein neues Ziel oder Datum im Setup, um weiterzutrainieren.</p>
                 <button onclick="window.openSetup(); window.closeModal();" class="w-full p-3 bg-blue-600 text-white rounded-xl font-bold">Neues Ziel setzen</button>

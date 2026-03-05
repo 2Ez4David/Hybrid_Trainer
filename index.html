@@ -32,14 +32,93 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -1;
+            z-index: 0;
             pointer-events: none;
-            opacity: 0.6;
+            opacity: 0.5;
             transition: opacity 0.5s;
         }
 
         .dark #antigravity-canvas {
-            opacity: 0.3;
+            opacity: 0.25;
+        }
+
+        .gradient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .gradient-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: blobFloat 20s ease-in-out infinite alternate;
+        }
+
+        .dark .gradient-blob {
+            opacity: 0.25;
+        }
+
+        .gradient-blob:nth-child(1) {
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, #93c5fd, #c4b5fd);
+            top: -10%;
+            left: -8%;
+            animation-duration: 22s;
+        }
+
+        .gradient-blob:nth-child(2) {
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, #a5b4fc, #f9a8d4);
+            bottom: 5%;
+            right: -10%;
+            animation-duration: 26s;
+            animation-delay: -8s;
+        }
+
+        .gradient-blob:nth-child(3) {
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, #c4b5fd, #ddd6fe);
+            top: 35%;
+            left: 25%;
+            animation-duration: 30s;
+            animation-delay: -14s;
+        }
+
+        .dark .gradient-blob:nth-child(1) {
+            background: radial-gradient(circle, #1e3a5f, #312e81);
+        }
+
+        .dark .gradient-blob:nth-child(2) {
+            background: radial-gradient(circle, #4c1d95, #7c3aed40);
+        }
+
+        .dark .gradient-blob:nth-child(3) {
+            background: radial-gradient(circle, #581c87, #312e81);
+        }
+
+        @keyframes blobFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(5vw, -4vh) scale(1.08);
+            }
+
+            66% {
+                transform: translate(-3vw, 6vh) scale(0.95);
+            }
+
+            100% {
+                transform: translate(2vw, -2vh) scale(1.03);
+            }
         }
 
         #app {
@@ -151,6 +230,11 @@
 
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
+    <div class="gradient-bg">
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+        <div class="gradient-blob"></div>
+    </div>
     <canvas id="antigravity-canvas"></canvas>
 
     <input type="file" id="import-input" style="display:none" onchange="window.importData(this)">
@@ -166,8 +250,9 @@
         class="fixed inset-0 z-[1000] flex flex-col items-center justify-center">
         <!-- THEME TOGGLE FOR SPLASH -->
         <button onclick="window.toggleTheme()"
-            class="absolute top-6 right-6 p-4 bg-slate-200/50 dark:bg-slate-800/80 backdrop-blur-md rounded-full z-[1010] shadow-sm text-xl hover:scale-110 transition-transform">
-            <span id="splash-theme-icon">🌓</span>
+            class="absolute top-6 right-6 flex items-center gap-2 px-4 py-3 bg-slate-200/60 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl z-[1010] shadow-md hover:scale-105 transition-transform">
+            <span id="splash-theme-icon" class="w-5 h-5">🌓</span>
+            <span class="text-xs font-bold opacity-70 dark:text-slate-300">Theme</span>
         </button>
         <div class="text-center fade-in relative z-10">
             <div class="text-6xl font-black mb-2 tracking-tight">

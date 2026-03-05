@@ -3,12 +3,12 @@
 let obStep = 0;
 const obData = { fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', maxHR: 190, apiKey: '', teamSport: 'none', teamSportDay: 'Dienstag' };
 const obSteps = [
-    { emoji: '🏃', title: 'Erfahrung', sub: 'Wie lange trainierst du schon?', field: 'fitness', type: 'select', options: [{ v: 'Beginner', l: '🌱 Anfänger (0-1 Jahr)' }, { v: 'Intermediate', l: '💪 Fortgeschritten (1-3 Jahre)' }, { v: 'Pro', l: '🏆 Profi (3+ Jahre)' }] },
-    { emoji: '🎯', title: 'Dein Ziel', sub: 'Worauf arbeitest du hin?', field: 'goal', type: 'select', options: [{ v: 'Halbmarathon', l: '🏅 Halbmarathon' }, { v: '10k Lauf', l: '💨 10k Lauf' }, { v: 'Marathon', l: '🔥 Marathon' }, { v: 'Allgemeine Fitness', l: '⭐ Allgemeine Fitness (Hybrid)' }] },
-    { emoji: '📅', title: 'Zieldatum', sub: 'Wann ist dein Renntag? (Optional)', field: 'goalDate', type: 'date' },
-    { emoji: '⚽', title: 'Teamsport', sub: 'Hast du einen regelmäßigen Teamsport?', field: 'teamSport', type: 'teamsport' },
-    { emoji: '❤️', title: 'Max Herzfrequenz', sub: 'Für deine Trainingszonen', field: 'maxHR', type: 'number', placeholder: '190' },
-    { emoji: '✨', title: 'KI-Power', sub: 'Gemini API Key für smarte Planung', field: 'apiKey', type: 'apikey' }
+    { icon: 'run', title: 'Erfahrung', sub: 'Wie lange trainierst du schon?', field: 'fitness', type: 'select', options: [{ v: 'Beginner', i: 'seedling', l: 'Anfänger (0-1 Jahr)' }, { v: 'Intermediate', i: 'muscle', l: 'Fortgeschritten (1-3 Jahre)' }, { v: 'Pro', i: 'trophy', l: 'Profi (3+ Jahre)' }] },
+    { icon: 'target', title: 'Dein Ziel', sub: 'Worauf arbeitest du hin?', field: 'goal', type: 'select', options: [{ v: 'Halbmarathon', i: 'medal', l: 'Halbmarathon' }, { v: '10k Lauf', i: 'wind', l: '10k Lauf' }, { v: 'Marathon', i: 'fire', l: 'Marathon' }, { v: 'Allgemeine Fitness', i: 'star', l: 'Allgemeine Fitness (Hybrid)' }] },
+    { icon: 'calendar', title: 'Zieldatum', sub: 'Wann ist dein Renntag? (Optional)', field: 'goalDate', type: 'date' },
+    { icon: 'vol', title: 'Teamsport', sub: 'Hast du einen regelmäßigen Teamsport?', field: 'teamSport', type: 'teamsport' },
+    { icon: 'heart', title: 'Max Herzfrequenz', sub: 'Für deine Trainingszonen', field: 'maxHR', type: 'number', placeholder: '190' },
+    { icon: 'sparkle', title: 'KI-Power', sub: 'Gemini API Key für smarte Planung', field: 'apiKey', type: 'apikey' }
 ];
 
 window.startOnboarding = () => {
@@ -28,22 +28,22 @@ function renderObStep() {
     let inputHtml = '';
     if (step.type === 'select') {
         inputHtml = `<div class="space-y-3">${step.options.map(o =>
-            `<button onclick="window.obSelect('${step.field}','${o.v}')" class="w-full p-4 rounded-xl border-2 text-left font-bold transition-all ${obData[step.field] === o.v ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md' : 'border-slate-200 dark:border-slate-700 dark:text-slate-300 hover:border-blue-300'}"><span class="text-lg">${o.l}</span></button>`
+            `<button onclick="window.obSelect('${step.field}','${o.v}')" class="w-full p-4 rounded-xl border-2 text-left font-bold transition-all flex items-center gap-3 ${obData[step.field] === o.v ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md' : 'border-slate-200 dark:border-slate-700 dark:text-slate-300 hover:border-blue-300'}"><span class="w-6 h-6 flex-shrink-0">${I[o.i]}</span><span class="text-lg">${o.l}</span></button>`
         ).join('')}</div>`;
     } else if (step.type === 'date') {
         inputHtml = `<input type="date" id="ob-input" value="${obData[step.field]}" onchange="obData['${step.field}']=this.value" class="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">`;
     } else if (step.type === 'teamsport') {
         const sports = [
-            { v: 'none', l: '❌ Kein Teamsport' },
-            { v: 'volleyball', l: '🏐 Volleyball' },
-            { v: 'fussball', l: '⚽ Fußball' },
-            { v: 'basketball', l: '🏀 Basketball' },
-            { v: 'handball', l: '🤾 Handball' },
-            { v: 'other', l: '🏅 Anderer Sport' }
+            { v: 'none', i: 'crossX', l: 'Kein Teamsport' },
+            { v: 'volleyball', i: 'vol', l: 'Volleyball' },
+            { v: 'fussball', i: 'vol', l: 'Fußball' },
+            { v: 'basketball', i: 'vol', l: 'Basketball' },
+            { v: 'handball', i: 'vol', l: 'Handball' },
+            { v: 'other', i: 'medal', l: 'Anderer Sport' }
         ];
         const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         inputHtml = `<div class="space-y-3">${sports.map(o =>
-            `<button onclick="window.obSelect('teamSport','${o.v}')" class="w-full p-3 rounded-xl border-2 text-left font-bold transition-all text-sm ${obData.teamSport === o.v ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md' : 'border-slate-200 dark:border-slate-700 dark:text-slate-300 hover:border-blue-300'}">${o.l}</button>`
+            `<button onclick="window.obSelect('teamSport','${o.v}')" class="w-full p-3 rounded-xl border-2 text-left font-bold transition-all text-sm flex items-center gap-2 ${obData.teamSport === o.v ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md' : 'border-slate-200 dark:border-slate-700 dark:text-slate-300 hover:border-blue-300'}"><span class="w-5 h-5 flex-shrink-0">${I[o.i]}</span>${o.l}</button>`
         ).join('')}</div>
         ${obData.teamSport !== 'none' ? `
             <p class="text-xs font-bold opacity-60 dark:text-slate-400 mt-4 mb-2">An welchem Tag?</p>
@@ -55,7 +55,7 @@ function renderObStep() {
         inputHtml = `
             <input type="password" id="ob-input" value="${obData[step.field] || ''}" onchange="obData['${step.field}']=this.value" placeholder="API Key einfügen..." class="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none mb-3">
             <details class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800 p-3">
-                <summary class="text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer">📖 Wie bekomme ich einen API Key?</summary>
+                <summary class="text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer flex items-center gap-1"><span class="w-4 h-4">${I.book}</span> Wie bekomme ich einen API Key?</summary>
                 <ol class="text-xs text-indigo-600 dark:text-indigo-400 mt-2 space-y-1.5 pl-4 list-decimal">
                     <li>Gehe zu <a href="https://aistudio.google.com" target="_blank" class="underline font-bold">aistudio.google.com</a></li>
                     <li>Melde dich mit deinem Google-Konto an</li>
@@ -63,7 +63,7 @@ function renderObStep() {
                     <li>Erstelle einen neuen Key oder wähle ein bestehendes Projekt</li>
                     <li>Kopiere den Key und füge ihn oben ein</li>
                 </ol>
-                <p class="text-[10px] text-indigo-500 mt-2">💡 Der kostenlose Tier reicht völlig aus (5 RPM).</p>
+                <p class="text-[10px] text-indigo-500 mt-2 flex items-center gap-1"><span class="w-3 h-3">${I.bulb}</span> Der kostenlose Tier reicht völlig aus (5 RPM).</p>
             </details>`;
     } else {
         inputHtml = `<input type="${step.type}" id="ob-input" value="${obData[step.field] || ''}" onchange="obData['${step.field}']=this.value" placeholder="${step.placeholder || ''}" class="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">`;
@@ -72,13 +72,13 @@ function renderObStep() {
     const isLast = obStep === obSteps.length - 1;
     document.getElementById('ob-content').innerHTML = `
         <div class="fade-in">
-            <div class="text-5xl mb-4">${step.emoji}</div>
+            <div class="w-12 h-12 mb-4">${I[step.icon]}</div>
             <h2 class="text-2xl font-bold dark:text-white mb-1">${step.title}</h2>
             <p class="text-sm opacity-60 dark:text-slate-400 mb-6">${step.sub}</p>
             ${inputHtml}
             <div class="flex gap-3 mt-8">
                 ${obStep > 0 ? '<button onclick="window.obPrev()" class="flex-1 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-bold dark:text-white">Zurück</button>' : ''}
-                <button id="ob-next-btn" onclick="window.obNext()" class="flex-1 p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg active:scale-95 transition-transform">${isLast ? '🚀 Plan erstellen' : 'Weiter →'}</button>
+                <button id="ob-next-btn" onclick="window.obNext()" class="flex-1 p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">${isLast ? '<span class="w-5 h-5">' + I.rocket + '</span> Plan erstellen' : 'Weiter →'}</button>
             </div>
         </div>
     `;
@@ -127,7 +127,7 @@ async function finalizeOnboarding() {
                         <circle cx="50" cy="50" r="42" fill="none" stroke-width="6" class="stroke-slate-200 dark:stroke-slate-700" />
                         <circle cx="50" cy="50" r="42" fill="none" stroke-width="6" stroke-linecap="round" class="stroke-blue-500" stroke-dasharray="180 264" />
                     </svg>
-                    <div class="absolute inset-0 flex items-center justify-center text-2xl">✨</div>
+                    <div class="absolute inset-0 flex items-center justify-center"><div class="w-8 h-8">${I.sparkle}</div></div>
                 </div>
                 <h2 class="text-xl font-bold dark:text-white mb-2">Plan wird erstellt...</h2>
                 <p class="text-sm opacity-50 dark:text-slate-400 text-center">Die KI analysiert dein Profil und<br>erstellt deinen ${newTotal}-Wochen Trainingsplan</p>
@@ -151,7 +151,7 @@ async function finalizeOnboarding() {
 
 // --- TUTORIAL OVERLAY ---
 const tutorialSteps = [
-    { selector: null, title: 'Willkommen! 👋', text: 'Hier ein kurzer Überblick über deine neue Training-App.', pos: 'center' },
+    { selector: null, title: 'Willkommen!', text: 'Hier ein kurzer Überblick über deine neue Training-App.', pos: 'center' },
     { selector: '#tut-week-nav', title: 'Wochennavigation', text: 'Hier navigierst du zwischen deinen Trainingswochen.', pos: 'below' },
     { selector: '#tut-tabs', title: 'Ansichten', text: 'Wechsle zwischen Wochenplan, Mobility und Statistiken.', pos: 'below' },
     { selector: '#tut-setup', title: 'Setup', text: 'Hier stellst du deine Gym-Tage, HR und KI ein.', pos: 'below' }

@@ -74,7 +74,7 @@ function generatePlan(wIdx) {
 
     const z2 = state.user.z2 || 'Z2';
     const z3 = state.user.z3 || 'Z3';
-    const lrTitle = isLastWeek && state.user.goal !== 'Allgemeine Fitness' ? `${state.user.goal} 🏁` : `Long Run (${lrDist} km)`;
+    const lrTitle = isLastWeek && state.user.goal !== 'Allgemeine Fitness' ? `${state.user.goal}` : `Long Run (${lrDist} km)`;
     const isRecovery = (wIdx % 4 === 3);
     const lrDesc = isRecovery ? "Cutback Week: Erholung!" : `Zone 2: ${z2}`;
     const lr = { type: 'run', subtype: 'long', title: lrTitle, desc: lrDesc };

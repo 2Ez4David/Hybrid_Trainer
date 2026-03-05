@@ -35,11 +35,11 @@ window.toggleMobilityCheck = (key, exIdx, w, dIdx) => {
 // --- SETUP ---
 window.openSetup = () => {
     const cfg = state.configs[state.week] || { uni: [], vol: true };
-    let html = `<p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400">GYM TAGE AUSWÄHLEN</p><div class="flex flex-wrap gap-2 mb-6">`;
+    let html = `<p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400">GYM TAGE AUSWÄHLEN</p><div class="flex gap-1.5 mb-6">`;
     weekDays.forEach(d => {
         const act = cfg.uni.includes(d);
         const short = d.substring(0, 2);
-        html += `<button onclick="window.toggleUni('${d}')" class="flex flex-col items-center p-3 rounded-xl border-2 min-w-[52px] transition-all ${act ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md shadow-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}"><span class="text-lg mb-1">${act ? '🏋️' : '·'}</span><span class="text-xs font-bold ${act ? 'text-blue-700 dark:text-blue-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
+        html += `<button onclick="window.toggleUni('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md shadow-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}"><span class="text-sm mb-0.5">${act ? I.gym : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-blue-700 dark:text-blue-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
     });
     html += `</div>
     <div class="grid grid-cols-3 gap-2 mb-4">
@@ -48,7 +48,7 @@ window.openSetup = () => {
         <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zone 3 (Tempo)</label><input type="text" value="${state.user.z3 || '133-152'}" onchange="state.user.z3=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
     </div>
     <div class="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-        <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">✨ Gemini API Key</label>
+        <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">${I.sparkle} Gemini API Key</label>
         <input type="password" value="${state.user.apiKey || ''}" onchange="state.user.apiKey=this.value; save()" placeholder="Dein API Key..." class="w-full p-2 text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 focus:outline-none">
     </div>
     <div class="mb-4">
@@ -59,15 +59,17 @@ window.openSetup = () => {
     </div>`;
 
     const tsName = state.user.teamSport && state.user.teamSport !== 'none' ? state.user.teamSport.charAt(0).toUpperCase() + state.user.teamSport.slice(1) : 'Teamsport';
-    html += `<p class="text-xs font-bold opacity-50 mb-3 mt-6 dark:text-slate-400">${tsName.toUpperCase()} TAGE AUSWÄHLEN</p><div class="flex flex-wrap gap-2 mb-6">`;
+    html += `<p class="text-xs font-bold opacity-50 mb-3 mt-6 dark:text-slate-400">${tsName.toUpperCase()} TAGE AUSWÄHLEN</p><div class="flex gap-1.5 mb-6">`;
     if (!Array.isArray(cfg.vol)) cfg.vol = cfg.vol ? [state.user.teamSportDay || 'Dienstag'] : [];
     weekDays.forEach(d => {
         const act = cfg.vol.includes(d);
         const short = d.substring(0, 2);
-        html += `<button onclick="window.toggleVol('${d}')" class="flex flex-col items-center p-3 rounded-xl border-2 min-w-[52px] transition-all ${act ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 shadow-md shadow-pink-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-pink-300'}"><span class="text-lg mb-1">${act ? I.vol : '·'}</span><span class="text-xs font-bold ${act ? 'text-pink-700 dark:text-pink-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
+        html += `<button onclick="window.toggleVol('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 shadow-md shadow-pink-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-pink-300'}"><span class="text-sm mb-0.5">${act ? I.vol : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-pink-700 dark:text-pink-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
     });
     html += `</div>
-    <div class="flex items-center justify-between p-3 mt-6 mb-4 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+    <p class="text-xs font-bold opacity-50 mb-3 mt-6 dark:text-slate-400">EFFEKTE</p>
+    <div class="space-y-2 mb-4">
+    <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         <div class="flex items-center gap-2">
             <div class="w-5 h-5">${I.sparkle}</div>
             <span class="text-xs font-bold dark:text-white">Partikeleffekte</span>
@@ -76,6 +78,17 @@ window.openSetup = () => {
             <input type="checkbox" ${state.user.particlesEnabled !== false ? 'checked' : ''} onchange="state.user.particlesEnabled = this.checked; save()" class="sr-only peer">
             <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
         </label>
+    </div>
+    <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <div class="flex items-center gap-2">
+            <div class="w-5 h-5">${I.gradient}</div>
+            <span class="text-xs font-bold dark:text-white">Farbverlauf</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" ${state.user.gradientEnabled !== false ? 'checked' : ''} onchange="state.user.gradientEnabled = this.checked; save(); document.querySelector('.gradient-bg').style.display = this.checked ? '' : 'none'" class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+        </label>
+    </div>
     </div>
     <div class="grid grid-cols-2 gap-2 mt-2 mb-6">
         <button onclick="window.exportData()" class="p-3 rounded-xl bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-2">${I.dl} Backup</button>
@@ -114,6 +127,12 @@ window.openDay = (json) => {
                     <div class="flex gap-2">${sets.map((s, idx) => `<div class="flex gap-1"><input type="number" placeholder="kg" class="w-12 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.w}" onchange="window.logGym('${day.id}','${k}',${idx},'w',this.value)"><input type="number" placeholder="rp" class="w-10 p-1 text-center text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700" value="${s.r}" onchange="window.logGym('${day.id}','${k}',${idx},'r',this.value)"></div>`).join('')}</div>
                 </div>`;
             });
+        } else if (day.type === 'vol') {
+            const rpe = log.run?.rpe || 5;
+            html += `<div class="space-y-4">
+                <p class="opacity-60 text-sm dark:text-slate-400 flex items-center gap-1"><span class="w-4 h-4 inline-block">${I.bolt}</span> Gib dein Belastungsempfinden an.</p>
+                <div><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>
+            </div>`;
         } else if (day.type !== 'rest') {
             const hist = getHistory('run', null, day.id); let histText = '';
             if (hist) {
@@ -124,14 +143,14 @@ window.openDay = (json) => {
             html += `${histText}<div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div><div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>`;
             if (day.subtype === 'easy' || day.type === 'bike') {
                 const isBike = state.configs[state.week].bike ? state.configs[state.week].bike.includes(day.id) : false;
-                html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors" onclick="window.toggleBike('${day.id}')">🚴 ${isBike ? 'Zu Laufen ändern' : 'Zu Rad ändern'}</button>`;
+                html += `<button class="w-full p-2 mt-2 border border-teal-500 text-teal-500 rounded hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors flex items-center justify-center gap-1" onclick="window.toggleBike('${day.id}')"><span class="w-4 h-4">${I.bike}</span> ${isBike ? 'Zu Laufen ändern' : 'Zu Rad ändern'}</button>`;
             }
         } else {
             const steps = log.steps || '';
             html += `<div class="space-y-4">
-                <p class="opacity-60 text-sm dark:text-slate-400">😴 Erhol dich gut! Nutze den Tag für Regeneration.</p>
+                <p class="opacity-60 text-sm dark:text-slate-400 flex items-center gap-1"><span class="w-4 h-4 inline-block">${I.sleep}</span> Erhol dich gut! Nutze den Tag für Regeneration.</p>
                 <div>
-                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">🚶 Schritte heute</label>
+                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1 flex items-center gap-1"><span class="w-3.5 h-3.5">${I.walk}</span> Schritte heute</label>
                     <input type="number" class="w-full p-3 border rounded-xl dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${steps}" onchange="window.logSteps('${day.id}', this.value)" placeholder="z.B. 8000">
                 </div>
             </div>`;
@@ -147,6 +166,7 @@ window.render = function () {
     try {
         if (state.darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');
         const splashBtn = document.getElementById('splash-theme-icon'); if (splashBtn) splashBtn.innerHTML = state.darkMode ? I.sun : I.moon;
+        const gradBg = document.querySelector('.gradient-bg'); if (gradBg) gradBg.style.display = state.user.gradientEnabled === false ? 'none' : '';
 
         const splash = document.getElementById('splash-screen');
         const ob = document.getElementById('onboarding-overlay');
@@ -293,7 +313,7 @@ function renderStats() {
 
 // --- INIT ---
 window.onload = function () {
-    initParticles(); animateParticles(); initGyro();
+    initParticles(); animateParticles(0); initGyro();
     if (!state.user.initialized) { document.getElementById('splash-screen').style.display = 'flex'; window.render(); }
     else if (!state.user.tutorialDone) { showTutorial(); }
     else { setTimeout(window.render, 10); }

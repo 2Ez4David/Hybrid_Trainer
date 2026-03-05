@@ -1,9 +1,10 @@
-// --- ANTIGRAVITY PARTICLE ENGINE ---
+// --- ANTIGRAVITY PARTICLE ENGINE (v2 — Performance Optimized) ---
 const canvas = document.getElementById('antigravity-canvas');
 const ctx = canvas.getContext('2d');
 let particlesArray = [];
 let mouse = { x: null, y: null, radius: 100 };
 let gyro = { x: 0, y: 0 };
+let globalDriftX = 0, globalDriftY = 0;
 
 window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
 window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
@@ -28,52 +29,53 @@ function handleGyro(e) {
 class Particle {
     constructor(x, y, size, speedY) {
         this.x = x; this.y = y; this.size = size;
-        this.baseX = this.x; this.baseY = this.y;
         this.speedY = speedY;
-        this.speedX = (Math.random() - 0.5) * 0.1;
+        this.speedX = (Math.random() - 0.5) * 0.08;
         this.vx = 0;
         this.vy = 0;
-        this.opacity = Math.random() * 0.4 + 0.1;
+        this.opacity = Math.random() * 0.35 + 0.1;
         this.hue = Math.random() * 60 + 200;
+        // Pre-compute color strings for performance (avoid per-frame string allocation)
+        const alpha = this.opacity;
+        this.colorDark = `hsla(${this.hue}, 80%, 70%, ${(alpha * 1.6).toFixed(3)})`;
+        this.colorLight = `hsla(${this.hue}, 75%, 55%, ${alpha.toFixed(3)})`;
+        this.glowDark = `hsla(${this.hue}, 80%, 70%, ${(alpha * 0.12).toFixed(3)})`;
+        this.glowLight = `hsla(${this.hue}, 75%, 55%, ${(alpha * 0.12).toFixed(3)})`;
+        this.hasGlow = this.size > 2.5;
     }
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        const alpha = this.opacity;
-        ctx.fillStyle = state.darkMode
-            ? `hsla(${this.hue}, 80%, 70%, ${alpha * 1.6})`
-            : `hsla(${this.hue}, 75%, 55%, ${alpha * 1.0})`;
+        ctx.fillStyle = state.darkMode ? this.colorDark : this.colorLight;
         ctx.fill();
-        if (this.size > 2) {
+        if (this.hasGlow) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = state.darkMode
-                ? `hsla(${this.hue}, 80%, 70%, ${alpha * 0.15})`
-                : `hsla(${this.hue}, 75%, 55%, ${alpha * 0.15})`;
+            ctx.fillStyle = state.darkMode ? this.glowDark : this.glowLight;
             ctx.fill();
         }
     }
     update() {
-        this.vx *= 0.92;
-        this.vy *= 0.92;
-        this.x += this.speedX + this.vx;
+        this.vx *= 0.94;
+        this.vy *= 0.94;
+        // Global gyro drift — all particles move together
+        this.x += this.speedX + this.vx + globalDriftX;
         this.y -= this.speedY;
-        this.y += this.vy;
-        this.vx += gyro.x * 0.3;
-        this.vy += gyro.y * 0.15;
+        this.y += this.vy + globalDriftY;
+        // Wrap around
         if (this.y < 0 - this.size) { this.y = canvas.height + this.size; this.x = Math.random() * canvas.width; }
         if (this.x < -10) this.x = canvas.width + 10;
         if (this.x > canvas.width + 10) this.x = -10;
+        // Mouse repel
         if (mouse.x != null) {
             let dx = mouse.x - this.x;
             let dy = mouse.y - this.y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < mouse.radius) {
-                const forceDirectionX = dx / distance;
-                const forceDirectionY = dy / distance;
+            let distSq = dx * dx + dy * dy;
+            if (distSq < mouse.radius * mouse.radius) {
+                let distance = Math.sqrt(distSq);
                 const force = (mouse.radius - distance) / mouse.radius;
-                this.vx -= forceDirectionX * force * 1.2;
-                this.vy -= forceDirectionY * force * 1.2;
+                this.vx -= (dx / distance) * force * 1.2;
+                this.vy -= (dy / distance) * force * 1.2;
             }
         }
         this.draw();
@@ -83,55 +85,21 @@ class Particle {
 function initParticles() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     particlesArray = [];
-    const numberOfParticles = Math.min(500, Math.floor((canvas.width * canvas.height) / 3000));
+    // Much fewer particles — performance friendly for mobile
+    const numberOfParticles = Math.min(120, Math.floor((canvas.width * canvas.height) / 8000));
     for (let i = 0; i < numberOfParticles; i++) {
-        let size = (Math.random() * 4) + 0.5;
+        let size = (Math.random() * 3.5) + 0.5;
         let x = Math.random() * canvas.width;
         let y = Math.random() * canvas.height;
-        let speedY = (Math.random() * 0.15) + 0.03;
+        let speedY = (Math.random() * 0.12) + 0.02;
         particlesArray.push(new Particle(x, y, size, speedY));
     }
 }
 
-function connectParticles() {
-    const maxDist = 70;
-    const minDist = 20;
-    const maxConnections = 3;
-    const connectionCount = new Uint8Array(particlesArray.length);
-    for (let a = 0; a < particlesArray.length; a++) {
-        if (connectionCount[a] >= maxConnections) continue;
-        for (let b = a + 1; b < particlesArray.length; b++) {
-            if (connectionCount[b] >= maxConnections) continue;
-            const dx = particlesArray[a].x - particlesArray[b].x;
-            const dy = particlesArray[a].y - particlesArray[b].y;
-            const dist = dx * dx + dy * dy;
-            if (dist < minDist * minDist || dist > maxDist * maxDist) continue;
-            if (mouse.x != null) {
-                const mxA = particlesArray[a].x - mouse.x;
-                const myA = particlesArray[a].y - mouse.y;
-                const mxB = particlesArray[b].x - mouse.x;
-                const myB = particlesArray[b].y - mouse.y;
-                const repelDistSq = (mouse.radius * 1.2) * (mouse.radius * 1.2);
-                if ((mxA * mxA + myA * myA) < repelDistSq || (mxB * mxB + myB * myB) < repelDistSq) {
-                    continue;
-                }
-            }
-            const opacity = 1 - (Math.sqrt(dist) / maxDist);
-            ctx.strokeStyle = state.darkMode
-                ? `rgba(96, 165, 250, ${opacity * 0.1})`
-                : `rgba(59, 130, 246, ${opacity * 0.08})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-            ctx.stroke();
-            connectionCount[a]++;
-            connectionCount[b]++;
-        }
-    }
-}
+let lastFrame = 0;
+const targetInterval = 1000 / 30; // Cap at 30 FPS for battery savings
 
-function animateParticles() {
+function animateParticles(timestamp) {
     if (state.user.particlesEnabled === false) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         canvas.style.display = 'none';
@@ -139,9 +107,21 @@ function animateParticles() {
         return;
     }
     canvas.style.display = '';
+
+    // Throttle to ~30fps
+    const delta = timestamp - lastFrame;
+    if (delta < targetInterval) {
+        requestAnimationFrame(animateParticles);
+        return;
+    }
+    lastFrame = timestamp - (delta % targetInterval);
+
+    // Smoothly apply gyro as global drift
+    globalDriftX += (gyro.x * 0.5 - globalDriftX) * 0.08;
+    globalDriftY += (gyro.y * 0.3 - globalDriftY) * 0.08;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
-    connectParticles();
+    // No connection lines — clean & performant
     requestAnimationFrame(animateParticles);
 }
-

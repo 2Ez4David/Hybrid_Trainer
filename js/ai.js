@@ -66,7 +66,7 @@ window.resetAIPlan = () => {
 }
 
 window.showAIConfirmation = (aiResult) => {
-    document.getElementById('modal-title').innerText = `✨ KI Plan generiert`;
+    document.getElementById('modal-title').innerHTML = `<span class="inline-flex items-center gap-2"><span class="w-5 h-5">${I.sparkle}</span> KI Plan generiert</span>`;
     const html = `
         <div class="mb-4 flex flex-col items-center">
             <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded-full dark:bg-indigo-900 dark:text-indigo-300 mb-4">
@@ -78,10 +78,10 @@ window.showAIConfirmation = (aiResult) => {
         </div>
         <div class="grid grid-cols-2 gap-3 mt-6">
             <button class="p-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs" onclick="window.closeModal()">
-                ❌ Verwerfen
+                <span class="w-4 h-4 inline-block">${I.crossX}</span> Verwerfen
             </button>
             <button class="p-3 rounded-xl bg-green-600 text-white font-bold text-xs shadow-md" onclick='window.applyAIPlan(${JSON.stringify(aiResult.plan).replace(/'/g, "&#39;")})'>
-                ✅ Plan übernehmen
+                <span class="w-4 h-4 inline-block">${I.check}</span> Plan übernehmen
             </button>
         </div>
     `;
@@ -216,7 +216,7 @@ Antwort: JSON mit "reasoning" (3-5 Sätze) und "weeks" (Array mit ${totalWeeks} 
 
 function showGlobalAIConfirmation(aiResult) {
     document.getElementById('onboarding-overlay').style.display = 'none';
-    document.getElementById('modal-title').innerText = '✨ Dein Master-Plan ist fertig';
+    document.getElementById('modal-title').innerHTML = '<span class="inline-flex items-center gap-2"><span class="w-5 h-5">' + I.sparkle + '</span> Dein Master-Plan ist fertig</span>';
     const html = `
         <div class="mb-4 flex flex-col items-center">
             <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-1 rounded-full dark:bg-indigo-900 dark:text-indigo-300 mb-4">
@@ -228,8 +228,8 @@ function showGlobalAIConfirmation(aiResult) {
             </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mt-6">
-            <button class="p-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs" onclick="window.skipGlobalAIPlan()">❌ Standard-Plan</button>
-            <button class="p-3 rounded-xl bg-green-600 text-white font-bold text-xs shadow-md" onclick="window.applyGlobalAIPlan()">✅ Plan übernehmen</button>
+            <button class="p-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs flex items-center justify-center gap-1" onclick="window.skipGlobalAIPlan()"><span class="w-4 h-4">${I.crossX}</span> Standard-Plan</button>
+            <button class="p-3 rounded-xl bg-green-600 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1" onclick="window.applyGlobalAIPlan()"><span class="w-4 h-4">${I.check}</span> Plan übernehmen</button>
         </div>
     `;
     document.getElementById('modal-body').innerHTML = html;
