@@ -41,11 +41,16 @@ window.openSetup = () => {
         const short = d.substring(0, 2);
         html += `<button onclick="window.toggleUni('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md shadow-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}"><span class="text-sm mb-0.5">${act ? I.gym : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-blue-700 dark:text-blue-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
     });
+    const zones = window.getHRZones(state.user);
     html += `</div>
-    <div class="grid grid-cols-3 gap-2 mb-4">
-        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="state.user.maxHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
-        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zone 2 (Locker)</label><input type="text" value="${state.user.z2 || '114-133'}" onchange="state.user.z2=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
-        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zone 3 (Tempo)</label><input type="text" value="${state.user.z3 || '133-152'}" onchange="state.user.z3=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Max HR (${I.heart})</label><input type="number" value="${state.user.maxHR}" onchange="state.user.maxHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
+        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Ruhepuls (${I.sleep})</label><input type="number" value="${state.user.restHR}" onchange="state.user.restHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
+    </div>
+    <div class="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 text-center">
+        <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 2</div><div class="text-xs font-bold text-blue-500">${zones.z2}</div></div>
+        <div class="flex-1 border-l border-r border-slate-200 dark:border-slate-700"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 3</div><div class="text-xs font-bold text-orange-500">${zones.z3}</div></div>
+        <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 4</div><div class="text-xs font-bold text-red-500">${zones.z4}</div></div>
     </div>
     <div class="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
         <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">${I.sparkle} Gemini API Key</label>
@@ -226,12 +231,34 @@ window.render = function () {
                 else if (t === 'bike' || t === 'Rad') { borderColor = '#14b8a6'; icon = I.bike; }
                 else if (t !== 'rest' && t !== '') { borderColor = '#6366f1'; icon = I.gym; }
 
+                let dTitle = day.title;
+                let dDesc = day.desc;
+                const hasVolTitle = day.hasVol ? ` + ${tsName}` : '';
+
+                // Show actual runtime/distance if log exists and day is done
+                if (day.done && (t === 'run' || t === 'bike' || t === 'Ausdauer' || t === 'Rad')) {
+                    const log = state.logs[day.id];
+                    if (log && log.run) {
+                        const dist = parseFloat(log.run.dist) || 0;
+                        const time = log.run.time || '-';
+                        if (dist > 0 || time !== '-') {
+                            // Extrahieren des Typs (z.B. "Easy Run" oder "Ergometer") aus dem ursprünglichen Titel
+                            const baseTitleSplit = day.title.split('(')[0].trim();
+                            dTitle = `${baseTitleSplit} (${dist} km)`;
+                            // Ursprüngliche, geplante Distanz anhängen
+                            const plannedMatch = day.title.match(/(\d+(?:\.\d+)?\s*km)/);
+                            const planned = plannedMatch ? plannedMatch[1] : '';
+                            dDesc = `${dist} km in ${time} ${planned ? `(Geplant: ${planned})` : ''}`;
+                        }
+                    }
+                }
+
                 const bg = day.done ? (state.darkMode ? 'background:rgba(22,163,74,0.15)' : 'background:#f0fdf4') : (state.darkMode ? 'background:rgba(30,41,59,0.95)' : 'background:rgba(255,255,255,0.8)');
                 const dayJson = encodeURIComponent(JSON.stringify(day));
-                const hasVolTitle = day.hasVol ? ` + ${tsName}` : '';
+
                 html += `<div onclick="window.openDay('${dayJson}')" class="flex items-center p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm backdrop-blur-sm cursor-pointer" style="${bg}; border-left: 4px solid ${borderColor}">
                     <div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500">${weekDays[i].substr(0, 2)}</div>
-                    <div class="flex-1"><div class="font-bold text-sm dark:text-white">${day.title}${hasVolTitle}</div>${day.type !== 'rest' ? `<div class="text-xs opacity-60 dark:text-slate-400">${day.desc}</div>` : ''}</div>
+                    <div class="flex-1"><div class="font-bold text-sm dark:text-white">${dTitle}${hasVolTitle}</div>${day.type !== 'rest' ? `<div class="text-xs opacity-60 dark:text-slate-400">${dDesc}</div>` : ''}</div>
                     <div class="text-slate-300 dark:text-slate-600 flex gap-1 items-center">${day.done ? `<div class="bg-green-500 rounded-full p-1">${I.check}</div>` : icon}${day.hasVol && !day.done ? `<div class="w-4 h-4 ml-1 opacity-50">${I.vol}</div>` : ''}</div>
                 </div>`;
             }); html += `</div>`;

@@ -106,11 +106,58 @@ window.importData = (input) => {
                     const importedUser = data.user || { maxHR: 190 };
                     if (!importedUser.apiKey && state.user.apiKey) importedUser.apiKey = state.user.apiKey;
                     importedUser.initialized = true;
-                    localStorage.setItem(STORE.USER, JSON.stringify(importedUser));
-                    localStorage.setItem(STORE.THEME, JSON.stringify(data.theme || false));
-                    alert('Import erfolgreich!'); location.reload();
+
+                    // Show Date Picker Modal
+                    document.getElementById('modal-title').innerText = 'Dein Backup Setup';
+                    const sDate = importedUser.startDate || new Date().toISOString().split('T')[0];
+                    const gDate = importedUser.goalDate || '';
+                    const uGoal = importedUser.goal || '';
+                    document.getElementById('modal-body').innerHTML = `
+                        <p class="text-xs opacity-60 mb-4 dark:text-slate-400">Damit dein Plan in der richtigen Woche startet, überprüfe bitte dein Ziel und die Daten.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Startdatum deines Plans</label>
+                                <input type="date" id="import-start-date" value="${sDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Zieldatum (Optional, Race Day)</label>
+                                <input type="date" id="import-goal-date" value="${gDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Dein Ziel</label>
+                                <select id="import-goal" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                    <option value="Halbmarathon" ${uGoal === 'Halbmarathon' ? 'selected' : ''}>Halbmarathon</option>
+                                    <option value="10k Lauf" ${uGoal === '10k Lauf' ? 'selected' : ''}>10k Lauf</option>
+                                    <option value="Marathon" ${uGoal === 'Marathon' ? 'selected' : ''}>Marathon</option>
+                                    <option value="Allgemeine Fitness" ${uGoal === 'Allgemeine Fitness' ? 'selected' : ''}>Allgemeine Fitness (Hybrid)</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishImport('${encodeURIComponent(JSON.stringify(importedUser))}', ${data.theme || false})" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm">Jetzt importieren laden</button>`;
+                    document.getElementById('modal-overlay').style.display = 'flex';
                 }
             } else alert('Ungültige Datei.');
         } catch (err) { alert('Fehler beim Lesen.'); }
     }; reader.readAsText(file);
+};
+
+window.finishImport = (userStr, themeStr) => {
+    try {
+        const importedUser = JSON.parse(decodeURIComponent(userStr));
+        const sDate = document.getElementById('import-start-date').value;
+        const gDate = document.getElementById('import-goal-date').value;
+        const goalVal = document.getElementById('import-goal').value;
+
+        importedUser.startDate = sDate;
+        importedUser.goalDate = gDate;
+        if (goalVal) importedUser.goal = goalVal;
+
+        localStorage.setItem(STORE.USER, JSON.stringify(importedUser));
+        localStorage.setItem(STORE.THEME, JSON.stringify(themeStr));
+        alert('Import erfolgreich!');
+        location.reload();
+    } catch (e) {
+        alert('Fehler beim Speichern der Daten.');
+    }
 };

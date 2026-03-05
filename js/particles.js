@@ -12,14 +12,30 @@ window.addEventListener('touchmove', (event) => { mouse.x = event.touches[0].cli
 window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
 window.addEventListener('touchend', () => { mouse.x = undefined; mouse.y = undefined; });
 
+let gyroInitialized = false;
 function initGyro() {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(p => {
-            if (p === 'granted') window.addEventListener('deviceorientation', handleGyro, true);
-        }).catch(() => { });
-    } else {
-        window.addEventListener('deviceorientation', handleGyro, true);
-    }
+    if (gyroInitialized) return;
+
+    const requestGyro = () => {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().then(p => {
+                if (p === 'granted') {
+                    window.addEventListener('deviceorientation', handleGyro, true);
+                    gyroInitialized = true;
+                }
+            }).catch(() => { });
+        } else {
+            window.addEventListener('deviceorientation', handleGyro, true);
+            gyroInitialized = true;
+        }
+        // Remove listeners after first interaction
+        document.body.removeEventListener('click', requestGyro);
+        document.body.removeEventListener('touchstart', requestGyro);
+    };
+
+    // Attach to first user interaction
+    document.body.addEventListener('click', requestGyro, { once: true });
+    document.body.addEventListener('touchstart', requestGyro, { once: true });
 }
 function handleGyro(e) {
     gyro.x = (e.gamma || 0) / 45;

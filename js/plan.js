@@ -52,7 +52,17 @@ function generatePlan(wIdx) {
         easyDist = (5 + pct * 4) * factor;
     }
 
+    const isRecovery = (wIdx % 4 === 3);
+
+    // Recovery Week / Cutback Week (reduce volume)
+    if (isRecovery && !isLastWeek && !isTaper) {
+        lrDist *= 0.75; // 25% reduction for long runs
+        easyDist *= 0.80; // 20% reduction for easy runs
+    }
+
+    // Tapering logic
     if (isTaper && !isLastWeek) { lrDist *= 0.6; easyDist *= 0.7; }
+
     lrDist = parseFloat(lrDist.toFixed(1));
     easyDist = parseFloat(easyDist.toFixed(1));
 
@@ -72,11 +82,11 @@ function generatePlan(wIdx) {
         days[tsIdx] = { type: 'vol', title: tsName, desc: "HIIT & Teamsport", id: `w${wIdx}d${tsIdx}` };
     });
 
-    const z2 = state.user.z2 || 'Z2';
-    const z3 = state.user.z3 || 'Z3';
+    const zones = window.getHRZones(state.user);
+    const z2 = zones.z2;
+    const z3 = zones.z3;
     const lrTitle = isLastWeek && state.user.goal !== 'Allgemeine Fitness' ? `${state.user.goal}` : `Long Run (${lrDist} km)`;
-    const isRecovery = (wIdx % 4 === 3);
-    const lrDesc = isRecovery ? "Cutback Week: Erholung!" : `Zone 2: ${z2}`;
+    const lrDesc = isRecovery && !isLastWeek ? "Cutback Week: Erholung! (Z2: " + z2 + ")" : `Zone 2: ${z2}`;
     const lr = { type: 'run', subtype: 'long', title: lrTitle, desc: lrDesc };
     if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` }; else days[5] = { ...lr, id: `w${wIdx}d5` };
 

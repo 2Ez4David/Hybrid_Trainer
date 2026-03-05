@@ -15,7 +15,15 @@ function getSafe(key, def) { try { return JSON.parse(localStorage.getItem(key)) 
 // --- DYNAMIC WEEKS ---
 function getTotalWeeks(user) {
     if (!user) user = getSafe(STORE.USER, {});
-    // If goal date is set, calculate weeks from now
+    // If goal date and start date are set, calculate weeks between them
+    if (user.goalDate && user.startDate) {
+        const start = new Date(user.startDate);
+        const goal = new Date(user.goalDate);
+        const diffMs = goal - start;
+        const weeks = Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000));
+        return Math.max(4, Math.min(30, weeks));
+    }
+    // Fallback: If only goal date is set, calculate weeks from now
     if (user.goalDate) {
         const now = new Date();
         const goal = new Date(user.goalDate);
@@ -45,9 +53,45 @@ let state = {
     week: 0, view: 'plan', statsSubView: 'overview', selectedExercise: null, selDay: null,
     configs: getSafe(STORE.CONF, defaultConfigs),
     logs: getSafe(STORE.LOGS, {}),
-    user: getSafe(STORE.USER, { initialized: false, maxHR: 190, fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', apiKey: '', tutorialDone: false }),
+    user: getSafe(STORE.USER, { initialized: false, maxHR: 190, restHR: 60, fitness: 'Beginner', goal: 'Halbmarathon', startDate: '', goalDate: '', apiKey: '', tutorialDone: false }),
     darkMode: getSafe(STORE.THEME, false)
 };
+
+// Apple Watch Heart Rate Reserve (HRR) Calculation
+window.getHRZones = function (u) {
+    const maxHR = parseInt(u.maxHR) || 190;
+    const restHR = parseInt(u.restHR) || 60;
+    const hrr = maxHR - restHR;
+
+    // Zone 2: 60% to 70% of HRR + Resting HR
+    const z2Min = Math.round((hrr * 0.60) + restHR);
+    const z2Max = Math.round((hrr * 0.70) + restHR);
+    // Zone 3: 70% to 80% of HRR + Resting HR
+    const z3Min = Math.round((hrr * 0.70) + restHR);
+    const z3Max = Math.round((hrr * 0.80) + restHR);
+    // Zone 4: 80% to 90% of HRR + Resting HR
+    const z4Min = Math.round((hrr * 0.80) + restHR);
+    const z4Max = Math.round((hrr * 0.90) + restHR);
+
+    return {
+        z2: `${z2Min}-${z2Max}`,
+        z3: `${z3Min}-${z3Max}`,
+        z4: `${z4Min}-${z4Max}`
+    };
+};
+
+// Berechne die aktuelle Woche anhand des Startdatums
+if (state.user.startDate) {
+    const start = new Date(state.user.startDate);
+    const now = new Date();
+    // Berücksichtigen, dass Trainingstage nicht exakt montags starten müssen, aber wir zählen die reinen vergangenen Tage
+    // start.setHours(0,0,0,0); now.setHours(0,0,0,0);
+    const diffMs = now.getTime() - start.getTime();
+    if (diffMs > 0) {
+        const weeksPassed = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+        state.week = Math.min(weeksPassed, getTotalWeeks(state.user) - 1);
+    }
+}
 
 // Repair / extend state if needed
 (function repairState() {
