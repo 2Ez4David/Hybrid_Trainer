@@ -53,7 +53,7 @@ let state = {
     week: 0, view: 'plan', statsSubView: 'overview', selectedExercise: null, selDay: null,
     configs: getSafe(STORE.CONF, defaultConfigs),
     logs: getSafe(STORE.LOGS, {}),
-    user: getSafe(STORE.USER, { initialized: false, maxHR: 190, restHR: 60, fitness: 'Beginner', goal: 'Halbmarathon', startDate: '', goalDate: '', apiKey: '', tutorialDone: false }),
+    user: getSafe(STORE.USER, { initialized: false, particleStyle: 'classic', maxHR: 190, restHR: 60, fitness: 'Beginner', goal: 'Halbmarathon', startDate: '', goalDate: '', apiKey: '', tutorialDone: false }),
     darkMode: getSafe(STORE.THEME, false)
 };
 

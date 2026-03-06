@@ -1,13 +1,15 @@
 // --- ONBOARDING: Splash, Multi-Step, API Key Guide, Tutorial ---
 
 let obStep = 0;
-const obData = { fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', maxHR: 190, apiKey: '', teamSport: 'none', teamSportDay: 'Dienstag' };
+const obData = { fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', goalTime: '', maxHR: 190, apiKey: '', teamSport: 'none', teamSportDays: ['Dienstag'], benchmarkDist: '', benchmarkTime: '', benchmarkNotes: '' };
 const obSteps = [
     { icon: 'run', title: 'Erfahrung', sub: 'Wie lange trainierst du schon?', field: 'fitness', type: 'select', options: [{ v: 'Beginner', i: 'seedling', l: 'Anfänger (0-1 Jahr)' }, { v: 'Intermediate', i: 'muscle', l: 'Fortgeschritten (1-3 Jahre)' }, { v: 'Pro', i: 'trophy', l: 'Profi (3+ Jahre)' }] },
     { icon: 'target', title: 'Dein Ziel', sub: 'Worauf arbeitest du hin?', field: 'goal', type: 'select', options: [{ v: 'Halbmarathon', i: 'medal', l: 'Halbmarathon' }, { v: '10k Lauf', i: 'wind', l: '10k Lauf' }, { v: 'Marathon', i: 'fire', l: 'Marathon' }, { v: 'Allgemeine Fitness', i: 'star', l: 'Allgemeine Fitness (Hybrid)' }] },
     { icon: 'calendar', title: 'Zieldatum', sub: 'Wann ist dein Renntag? (Optional)', field: 'goalDate', type: 'date' },
+    { icon: 'timer', title: 'Zielzeit', sub: 'Hast du eine Zielzeit im Kopf? (Optional, z.B. 1:45:00)', field: 'goalTime', type: 'text', placeholder: 'hh:mm:ss oder mm:ss' },
     { icon: 'vol', title: 'Teamsport', sub: 'Hast du einen regelmäßigen Teamsport?', field: 'teamSport', type: 'teamsport' },
     { icon: 'heart', title: 'Max Herzfrequenz', sub: 'Für deine Trainingszonen', field: 'maxHR', type: 'number', placeholder: '190' },
+    { icon: 'fire', title: 'Benchmark Run', sub: 'Nutze einen vergangenen Lauf als Basis für deinen Plan', field: 'benchmark', type: 'benchmark' },
     { icon: 'sparkle', title: 'KI-Power', sub: 'Gemini API Key für smarte Planung', field: 'apiKey', type: 'apikey' }
 ];
 
@@ -46,9 +48,9 @@ function renderObStep() {
             `<button onclick="window.obSelect('teamSport','${o.v}')" class="w-full p-3 rounded-xl border-2 text-left font-bold transition-all text-sm flex items-center gap-2 ${obData.teamSport === o.v ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 shadow-md' : 'border-slate-200 dark:border-slate-700 dark:text-slate-300 hover:border-blue-300'}"><span class="w-5 h-5 flex-shrink-0">${I[o.i]}</span>${o.l}</button>`
         ).join('')}</div>
         ${obData.teamSport !== 'none' ? `
-            <p class="text-xs font-bold opacity-60 dark:text-slate-400 mt-4 mb-2">An welchem Tag?</p>
+            <p class="text-xs font-bold opacity-60 dark:text-slate-400 mt-4 mb-2">An welchen Tagen?</p>
             <div class="flex flex-wrap gap-2">${days.map(d =>
-            `<button onclick="window.obSelect('teamSportDay','${d}')" class="px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${obData.teamSportDay === d ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-slate-200 dark:border-slate-700 dark:text-slate-400'}">${d.substring(0, 2)}</button>`
+            `<button onclick="window.obToggleDay('${d}')" class="px-3 py-2 rounded-lg border-2 text-xs font-bold transition-all ${obData.teamSportDays.includes(d) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-slate-200 dark:border-slate-700 dark:text-slate-400'}">${d.substring(0, 2)}</button>`
         ).join('')}</div>
         ` : ''}`;
     } else if (step.type === 'apikey') {
@@ -65,6 +67,23 @@ function renderObStep() {
                 </ol>
                 <p class="text-[10px] text-indigo-500 mt-2 flex items-center gap-1"><span class="w-3 h-3">${I.bulb}</span> Der kostenlose Tier reicht völlig aus (5 RPM).</p>
             </details>`;
+    } else if (step.type === 'benchmark') {
+        inputHtml = `
+            <div class="space-y-4">
+                <p class="text-xs dark:text-slate-400 opacity-80">Je genauer dein Benchmark, desto besser kann der Plan skaliert werden (Optional).</p>
+                <div>
+                    <label class="block text-xs font-bold dark:text-slate-300 mb-1">Distanz (km)</label>
+                    <input type="number" step="0.1" id="ob-bench-dist" value="${obData.benchmarkDist}" onchange="obData.benchmarkDist=this.value" placeholder="z.B. 5 oder 10" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold dark:text-slate-300 mb-1">Zeit (hh:mm:ss)</label>
+                    <input type="text" id="ob-bench-time" value="${obData.benchmarkTime}" onchange="obData.benchmarkTime=this.value" placeholder="z.B. 00:25:30" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold dark:text-slate-300 mb-1">Notizen zum Lauf</label>
+                    <textarea id="ob-bench-notes" onchange="obData.benchmarkNotes=this.value" rows="2" placeholder="z.B. Sehr anstrengend, hügelig, heiß..." class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">${obData.benchmarkNotes}</textarea>
+                </div>
+            </div>`;
     } else {
         inputHtml = `<input type="${step.type}" id="ob-input" value="${obData[step.field] || ''}" onchange="obData['${step.field}']=this.value" placeholder="${step.placeholder || ''}" class="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">`;
     }
@@ -85,6 +104,15 @@ function renderObStep() {
 }
 
 window.obSelect = (field, val) => { obData[field] = val; renderObStep(); };
+window.obToggleDay = (d) => {
+    if (!obData.teamSportDays) obData.teamSportDays = [];
+    if (obData.teamSportDays.includes(d)) {
+        obData.teamSportDays = obData.teamSportDays.filter(day => day !== d);
+    } else {
+        obData.teamSportDays.push(d);
+    }
+    renderObStep();
+};
 window.obPrev = () => { if (obStep > 0) { obStep--; renderObStep(); } };
 window.obNext = () => {
     const inp = document.getElementById('ob-input');
@@ -97,10 +125,14 @@ async function finalizeOnboarding() {
     state.user.fitness = obData.fitness;
     state.user.goal = obData.goal;
     state.user.goalDate = obData.goalDate;
+    state.user.goalTime = obData.goalTime;
     state.user.maxHR = parseInt(obData.maxHR) || 190;
     state.user.apiKey = obData.apiKey;
     state.user.teamSport = obData.teamSport;
-    state.user.teamSportDay = obData.teamSportDay;
+    state.user.teamSportDays = obData.teamSportDays || [];
+    state.user.benchmarkDist = obData.benchmarkDist;
+    state.user.benchmarkTime = obData.benchmarkTime;
+    state.user.benchmarkNotes = obData.benchmarkNotes;
     state.user.initialized = true;
 
     // Recalculate configs for new total weeks
@@ -109,8 +141,7 @@ async function finalizeOnboarding() {
     // Apply team sport setting
     if (state.user.teamSport && state.user.teamSport !== 'none') {
         for (let i = 0; i < state.configs.length; i++) {
-            state.configs[i].vol = true;
-            state.configs[i].teamSportDay = state.user.teamSportDay;
+            state.configs[i].vol = [...state.user.teamSportDays];
         }
     } else {
         for (let i = 0; i < state.configs.length; i++) {

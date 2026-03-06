@@ -103,7 +103,7 @@ window.importData = (input) => {
                 if (confirm('Daten überschreiben?')) {
                     localStorage.setItem(STORE.CONF, JSON.stringify(data.conf));
                     localStorage.setItem(STORE.LOGS, JSON.stringify(data.logs));
-                    const importedUser = data.user || { maxHR: 190 };
+                    const importedUser = { ...state.user, ...data.user };
                     if (!importedUser.apiKey && state.user.apiKey) importedUser.apiKey = state.user.apiKey;
                     importedUser.initialized = true;
 
@@ -111,17 +111,23 @@ window.importData = (input) => {
                     document.getElementById('modal-title').innerText = 'Dein Backup Setup';
                     const sDate = importedUser.startDate || new Date().toISOString().split('T')[0];
                     const gDate = importedUser.goalDate || '';
-                    const uGoal = importedUser.goal || '';
+                    const uGoal = importedUser.goal || 'Halbmarathon';
+                    const uFitness = importedUser.fitness || 'Beginner';
+                    const uMaxHR = importedUser.maxHR || 190;
+                    const uRestHR = importedUser.restHR || 60;
+
                     document.getElementById('modal-body').innerHTML = `
                         <p class="text-xs opacity-60 mb-4 dark:text-slate-400">Damit dein Plan in der richtigen Woche startet, überprüfe bitte dein Ziel und die Daten.</p>
                         <div class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Startdatum deines Plans</label>
-                                <input type="date" id="import-start-date" value="${sDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Zieldatum (Optional, Race Day)</label>
-                                <input type="date" id="import-goal-date" value="${gDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Startdatum</label>
+                                    <input type="date" id="import-start-date" value="${sDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Race Day (Optional)</label>
+                                    <input type="date" id="import-goal-date" value="${gDate}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                </div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Dein Ziel</label>
@@ -132,9 +138,27 @@ window.importData = (input) => {
                                     <option value="Allgemeine Fitness" ${uGoal === 'Allgemeine Fitness' ? 'selected' : ''}>Allgemeine Fitness (Hybrid)</option>
                                 </select>
                             </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Max HR</label>
+                                    <input type="number" id="import-max-hr" value="${uMaxHR}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Ruhepuls</label>
+                                    <input type="number" id="import-rest-hr" value="${uRestHR}" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold opacity-60 dark:text-slate-400 block mb-1">Fitness Level</label>
+                                <select id="import-fitness" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none">
+                                    <option value="Beginner" ${uFitness === 'Beginner' ? 'selected' : ''}>Anfänger</option>
+                                    <option value="Intermediate" ${uFitness === 'Intermediate' ? 'selected' : ''}>Fortgeschritten</option>
+                                    <option value="Pro" ${uFitness === 'Pro' ? 'selected' : ''}>Profi</option>
+                                </select>
+                            </div>
                         </div>
                     `;
-                    document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishImport('${encodeURIComponent(JSON.stringify(importedUser))}', ${data.theme || false})" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm">Jetzt importieren laden</button>`;
+                    document.getElementById('modal-footer').innerHTML = `<button onclick="window.finishImport('${encodeURIComponent(JSON.stringify(importedUser))}', ${data.theme || false})" class="w-full bg-slate-900 dark:bg-blue-600 text-white p-3 rounded-xl font-bold text-sm">Backup jetzt laden</button>`;
                     document.getElementById('modal-overlay').style.display = 'flex';
                 }
             } else alert('Ungültige Datei.');
@@ -145,17 +169,16 @@ window.importData = (input) => {
 window.finishImport = (userStr, themeStr) => {
     try {
         const importedUser = JSON.parse(decodeURIComponent(userStr));
-        const sDate = document.getElementById('import-start-date').value;
-        const gDate = document.getElementById('import-goal-date').value;
-        const goalVal = document.getElementById('import-goal').value;
-
-        importedUser.startDate = sDate;
-        importedUser.goalDate = gDate;
-        if (goalVal) importedUser.goal = goalVal;
+        importedUser.startDate = document.getElementById('import-start-date').value;
+        importedUser.goalDate = document.getElementById('import-goal-date').value;
+        importedUser.goal = document.getElementById('import-goal').value;
+        importedUser.maxHR = parseInt(document.getElementById('import-max-hr').value);
+        importedUser.restHR = parseInt(document.getElementById('import-rest-hr').value);
+        importedUser.fitness = document.getElementById('import-fitness').value;
 
         localStorage.setItem(STORE.USER, JSON.stringify(importedUser));
         localStorage.setItem(STORE.THEME, JSON.stringify(themeStr));
-        alert('Import erfolgreich!');
+        alert('Import erfolgreich! Die App wird neu geladen.');
         location.reload();
     } catch (e) {
         alert('Fehler beim Speichern der Daten.');
