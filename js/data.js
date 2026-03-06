@@ -80,9 +80,10 @@ const legalTemplates = {
         <h3 class="font-bold text-lg mb-4">Impressum</h3>
         <p class="text-sm mb-4">Angaben gemäß § 5 TMG:</p>
         <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 text-xs space-y-2 mb-6">
-            <p><strong>Betreiber:</strong> David Werner </p>
-            <p><strong>Kontakt:</strong> littledaaviid122@gmail.com </p>
-            <p><strong>Anschrift:</strong> Robert-Britsch Str. 54, 75449 Wurmberg </p>
+            <p><strong>Betreiber:</strong> <span class="reverse">renreW divaD</span></p>
+            <p><strong>Kontakt:</strong> <span class="reverse">moc.liamg@221diiavadtelttil</span></p>
+            <p><strong>Anschrift:</strong> <span class="reverse">grebmruW 94457 ,45 .rtS hstcirB-treboR</span></p>
+        </div>
     `,
     privacy: `
         <h3 class="font-bold text-lg mb-4">Datenschutzerklärung</h3>
