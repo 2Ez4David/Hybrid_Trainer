@@ -49,7 +49,7 @@ window.openSetup = () => {
             <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Event ($Ziel)</label><input type="text" value="${state.user.goal}" onchange="state.user.goal=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
             <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zielzeit</label><input type="text" value="${state.user.goalTime || ''}" onchange="state.user.goalTime=this.value; save()" placeholder="z.B. 1:45:00" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
         </div>
-        <label class="block text-xs font-bold dark:text-white mt-4 mb-2">${I.flame} Aktueller Benchmark</label>
+        <label class="block text-xs font-bold dark:text-white mt-4 mb-2">${I.fire} Aktueller Benchmark</label>
         <div class="grid grid-cols-2 gap-2 mb-2">
             <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Distanz (km)</label><input type="number" step="0.1" value="${state.user.benchmarkDist || ''}" onchange="state.user.benchmarkDist=this.value; save()" placeholder="z.B. 5" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
             <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zeit (Pace)</label><input type="text" value="${state.user.benchmarkTime || ''}" onchange="state.user.benchmarkTime=this.value; save()" placeholder="z.B. 00:25:30" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>

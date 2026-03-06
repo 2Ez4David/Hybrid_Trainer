@@ -15,7 +15,7 @@ window.downloadAIDebugLogs = () => {
 };
 
 async function fetchGemini(systemPrompt, apiKey) {
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const models = ['gemini-2.5-flash'];
     const errors = [];
     window.addAIDebugLog('request_start', { systemPrompt });
     for (const model of models) {
@@ -42,12 +42,12 @@ async function fetchGemini(systemPrompt, apiKey) {
                         window.addAIDebugLog('parsed_success', { model, reasoning: responseObj.reasoning });
                         return { model: model, reasoning: responseObj.reasoning || "Keine Begründung angegeben.", plan: planArr };
                     }
-                    throw new Error("Formatfehler: KI hat kein 'plan' Array mit 7 Tagen generiert.");
+                    throw new Error(`Formatfehler: KI hat ${Array.isArray(planArr) ? planArr.length : 0} Tage statt 7 generiert.`);
                 } catch (parseErr) {
                     throw new Error("Fehler beim Verarbeiten des JSON: " + parseErr.message);
                 }
             } else {
-                throw new Error("JSON-Objekt in Antwort nicht gefunden. Roh-Text: " + textObj.substring(0, 100) + "...");
+                throw new Error("JSON-Objekt in Antwort nicht gefunden.");
             }
         } catch (e) {
             errors.push(`${model}: ${e.message}`);
@@ -57,7 +57,7 @@ async function fetchGemini(systemPrompt, apiKey) {
         }
     }
     window.addAIDebugLog('request_fail', { errors });
-    throw new Error("Models fehlgeschlagen:\n" + errors.join("\n"));
+    throw new Error("KI-Modelle fehlgeschlagen:\n" + errors.join("\n"));
 }
 
 window.openAIChat = () => {
@@ -177,19 +177,20 @@ window.fetchAIGlobalFollowupPlan = async () => {
         skeletonWeeks.push(plan.map(d => ({ id: d.id, type: d.type, title: d.title, desc: d.desc, exercises: d.exercises || [] })));
     }
 
-    const systemPrompt = `Du bist ein elitärer Hybrid-Coach. Du modifizierst die RESTLICHE Trainingsplanung (ab Woche ${state.week + 1} bis Woche ${totalWeeks}) basierend auf Nutzeranfragen.
+    const systemPrompt = `Du bist ein elitärer Hybrid-Coach. Du modifizierst die RESTLICHE Trainingsplanung (Woche ${state.week + 1} bis Woche ${totalWeeks}) basierend auf Nutzeranfragen.
     Nutzerprofil: ${state.user.fitness}, Goal: ${state.user.goal}.
     Nutzer-Anfrage: "${promptInput}"
     
-    Hier ist der restliche Plan (${skeletonWeeks.length} Wochen à 7 Tage): ${JSON.stringify(skeletonWeeks)}
+    Hier ist der restliche Plan als Array von ${skeletonWeeks.length} Wochen: ${JSON.stringify(skeletonWeeks)}
     
     Regeln:
     1. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt.
-    2. Keys: "reasoning" (kurz auf Deutsch) und "weeks" (Array von Arrays für die restlichen ${skeletonWeeks.length} Wochen).
-    3. Behalte IDs bei (startend bei w${state.week}d0).
-    4. WICHTIG bei Gym: Behalte das Array "exercises" bei. Erfinde keine Übungen.
-    5. Passe Volumen, Läufe und Aufteilung sinnvoll an die Nutzeranfrage an.
-    6. Keine Markdown-Blöcke (wie \`\`\`json) außer dem reinen JSON-Text string.`;
+    2. Keys: "reasoning" (kurz auf Deutsch) und "weeks" (Array von exakt ${skeletonWeeks.length} Wochen).
+    3. Die erste Woche im "weeks" Array MUSS die Woche mit den IDs w${state.week}d0 bis w${state.week}d6 sein.
+    4. Behalte alle IDs strikt bei.
+    5. WICHTIG bei Gym: Behalte das Array "exercises" bei. Erfinde keine Übungen.
+    6. Passe Volumen, Läufe und Aufteilung sinnvoll an die Nutzeranfrage an.
+    7. Keine Markdown-Blöcke (wie \`\`\`json) außer dem reinen JSON-Text string.`;
 
     try {
         const models = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
@@ -298,8 +299,9 @@ Antwort: JSON.
 WICHTIG bei Gym-Tagen: Übernimm ZWINGEND das Array "exercises" aus dem Standard-Plan (typische Splits wie Push/Pull/Legs oder Upper/Lower). Erfinde keine neuen Übungen! Passe lediglich das Pensum, die Aufteilung der Gym-Tage sowie das Lauftraining strukturiert an.
 Gib absolut KEINEN Markdown-Codeblock (wie \`\`\`json) zurück, sondern reinen JSON-Text string.`;
     try {
-        const models = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+        const models = ['gemini-2.5-flash'];
         const errors = [];
+        window.addAIDebugLog('request_start', { systemPrompt });
         for (const model of models) {
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.user.apiKey}`, {
@@ -307,6 +309,7 @@ Gib absolut KEINEN Markdown-Codeblock (wie \`\`\`json) zurück, sondern reinen J
                     body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
                 });
                 const resData = await response.json();
+                window.addAIDebugLog('response_raw', { model, resData });
                 if (resData.error) throw new Error(resData.error.message);
                 if (!resData.candidates || !resData.candidates[0]) throw new Error("Keine Antwort von der KI erhalten.");
                 let textObj = resData.candidates[0].content.parts[0].text;
@@ -320,22 +323,25 @@ Gib absolut KEINEN Markdown-Codeblock (wie \`\`\`json) zurück, sondern reinen J
                             let valid = true;
                             for (const week of weeksArr) { if (!Array.isArray(week) || week.length !== 7) { valid = false; break; } }
                             if (valid) {
+                                window.addAIDebugLog('parsed_success', { model, reasoning: responseObj.reasoning });
                                 showGlobalAIConfirmation({ model, reasoning: responseObj.reasoning || 'Kein Reasoning.', weeks: weeksArr });
                                 return;
                             }
                         }
-                        throw new Error('Formatfehler: KI hat nicht ' + totalWeeks + ' Wochen à 7 Tage generiert.');
+                        throw new Error(`Formatfehler: KI hat ${Array.isArray(weeksArr) ? weeksArr.length : 0} Wochen statt ${totalWeeks} generiert.`);
                     } catch (parseErr) {
                         throw new Error('JSON Parse Fehler: ' + parseErr.message);
                     }
                 } else {
-                    throw new Error('JSON-Objekt nicht gefunden. Roh-Text: ' + textObj.substring(0, 100) + '...');
+                    throw new Error('JSON-Objekt in Antwort nicht gefunden.');
                 }
             } catch (e) {
                 errors.push(`${model}: ${e.message}`);
+                window.addAIDebugLog('model_error', { model, error: e.message });
                 console.warn('Global AI Plan Fehler:', e);
             }
         }
+        window.addAIDebugLog('request_fail', { errors });
         throw new Error('Alle Modelle fehlgeschlagen:\n' + errors.join('\n'));
     } catch (e) {
         console.error("KI Onboarding Exception:", e);
