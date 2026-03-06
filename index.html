@@ -12,13 +12,19 @@
     <script>try { tailwind.config = { darkMode: 'class' }; } catch (e) { }</script>
 
     <style>
+        html,
+        body {
+            overscroll-behavior: none;
+            overflow-x: hidden;
+        }
+
         body {
             font-family: -apple-system, system-ui, sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
             margin: 0;
             -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
+            touch-action: manipulation;
         }
 
         .dark body {
