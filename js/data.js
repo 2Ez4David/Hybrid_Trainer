@@ -82,7 +82,7 @@ const legalTemplates = {
         <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 text-xs space-y-2 mb-6">
             <p><strong>Betreiber:</strong> <span class="reverse">renreW divaD</span></p>
             <p><strong>Kontakt:</strong> <span class="reverse">moc.liamg@221diiavadtelttil</span></p>
-            <p><strong>Anschrift:</strong> <span class="reverse">grebmruW 94457 ,45 .rtS hstcirB-treboR</span></p>
+            <p><strong>Anschrift:</strong> <span class="reverse">grebmruW 94457 ,45 .rtS hcstirB-treboR</span></p>
         </div>
     `,
     privacy: `
