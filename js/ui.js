@@ -114,11 +114,18 @@ window.openSetup = () => {
         </label>
     </div>
     </div>
-    <div class="grid grid-cols-2 gap-2 mt-2 mb-6">
+    <div class="grid grid-cols-2 gap-2 mt-2">
         <button onclick="window.exportData()" class="p-3 rounded-xl bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-2">${I.dl} Backup</button>
         <button onclick="document.getElementById('import-input').click()" class="p-3 rounded-xl bg-orange-500 text-white text-xs font-bold flex items-center justify-center gap-2">${I.ul} Laden</button>
     </div>
-    <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-2 text-center text-xs text-red-500 cursor-pointer">App Reset</div>`;
+    <div class="mt-8 pt-6 border-t dark:border-slate-700">
+        <p class="text-[10px] font-bold opacity-40 dark:text-slate-400 mb-3 uppercase tracking-tighter">Rechtliches</p>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="window.openLegal('impressum')" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold flex items-center justify-center gap-1.5">${I.info} Impressum</button>
+            <button onclick="window.openLegal('privacy')" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold flex items-center justify-center gap-1.5">${I.shield} Datenschutz</button>
+        </div>
+    </div>
+    <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-8 text-center text-[10px] font-bold text-red-500/50 hover:text-red-500 transition-colors cursor-pointer uppercase tracking-widest">App Reset</div>`;
     document.getElementById('modal-title').innerText = `Setup W${state.week + 1} `;
     document.getElementById('modal-body').innerHTML = html;
     document.getElementById('modal-footer').innerHTML = '';
@@ -308,28 +315,72 @@ function renderStats() {
         }
         totalKg += v; totalKm += d; gymData.push(v); runData.push(d);
     }
-    const maxGym = Math.max(...gymData, 1); const maxRun = Math.max(...runData, 1);
-    let html = `<div class="fade-in space-y-6"> <div class="flex bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-1 rounded-lg border dark:border-slate-800 mb-4"><button onclick="state.statsSubView='overview';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView === 'overview' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'opacity-60 dark:text-slate-400'}">Übersicht</button><button onclick="state.statsSubView='details';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView === 'details' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'opacity-60 dark:text-slate-400'}">Details</button></div>`;
+
+    const maxGym = Math.max(...gymData, 1);
+    const maxRun = Math.max(...runData, 1);
+
+    let html = `<div class="fade-in space-y-6">
+        <div class="flex bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-1 rounded-lg border dark:border-slate-800 mb-4">
+            <button onclick="state.statsSubView='overview';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView === 'overview' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'opacity-60 dark:text-slate-400'}">Übersicht</button>
+            <button onclick="state.statsSubView='details';window.render()" class="flex-1 py-1 text-xs font-bold rounded ${state.statsSubView === 'details' ? 'bg-slate-900 text-white dark:bg-blue-600' : 'opacity-60 dark:text-slate-400'}">Details</button>
+        </div>`;
+
     if (state.statsSubView === 'overview') {
-        html += `<div class="grid grid-cols-3 gap-3 mb-4"><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Km</div><div class="font-bold text-lg text-orange-500">${totalKm.toFixed(1)}</div></div><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Tonnen</div><div class="font-bold text-lg text-blue-500">${(totalKg / 1000).toFixed(1)}</div></div><div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center"><div class="text-xs opacity-50 mb-1 dark:text-slate-400">Ø RPE</div><div class="font-bold text-lg text-purple-500">${rpeCnt ? (totalRPE / rpeCnt).toFixed(1) : '-'}</div></div></div>
-        <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800 mb-4"><h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.gym} Gym Volumen</h3><div class="flex items-end gap-1 h-24">${gymData.map(v => `<div class="flex-1 bg-blue-500 rounded-t" style="height:${(v / maxGym) * 100}%; min-height:4px;"></div>`).join('')}</div></div>
-        <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800"><h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.run} Lauf Distanz</h3><div class="flex items-end gap-1 h-24">${runData.map(v => `<div class="flex-1 bg-orange-500 rounded-t" style="height:${(v / maxRun) * 100}%; min-height:4px;"></div>`).join('')}</div></div>`;
+        html += `<div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center">
+                <div class="text-xs opacity-50 mb-1 dark:text-slate-400">Km</div>
+                <div class="font-bold text-lg text-orange-500">${totalKm.toFixed(1)}</div>
+            </div>
+            <div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center">
+                <div class="text-xs opacity-50 mb-1 dark:text-slate-400">Tonnen</div>
+                <div class="font-bold text-lg text-blue-500">${(totalKg / 1000).toFixed(1)}</div>
+            </div>
+            <div class="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border dark:border-slate-800 text-center">
+                <div class="text-xs opacity-50 mb-1 dark:text-slate-400">Ø RPE</div>
+                <div class="font-bold text-lg text-purple-500">${rpeCnt ? (totalRPE / rpeCnt).toFixed(1) : '-'}</div>
+            </div>
+        </div>
+        <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800 mb-4">
+            <h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.gym} Gym Volumen</h3>
+            <div class="flex items-end gap-1 h-24">${gymData.map(v => `<div class="flex-1 bg-blue-500 rounded-t" style="height:${(v / maxGym) * 100}%; min-height:4px;"></div>`).join('')}</div>
+        </div>
+        <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800">
+            <h3 class="font-bold mb-4 flex gap-2 text-sm dark:text-white">${I.run} Lauf Distanz</h3>
+            <div class="flex items-end gap-1 h-24">${runData.map(v => `<div class="flex-1 bg-orange-500 rounded-t" style="height:${(v / maxRun) * 100}%; min-height:4px;"></div>`).join('')}</div>
+        </div>`;
     } else {
-        const gymSet = new Set(); Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e))); const gymList = Array.from(gymSet).sort();
-        html += `<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800"><h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3><select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white"><option value="" disabled ${!state.selectedExercise ? 'selected' : ''}>Wählen...</option><option value="Long Run" ${state.selectedExercise === 'Long Run' ? 'selected' : ''}>Long Run (Pace)</option><option value="Easy Run" ${state.selectedExercise === 'Easy Run' ? 'selected' : ''}>Easy Run (Pace)</option><optgroup label="Gym">${gymList.map(e => `<option value="${e}" ${state.selectedExercise === e ? 'selected' : ''}>${e}</option>`).join('')}</optgroup></select>`;
+        const gymSet = new Set();
+        Object.values(splits).forEach(s => s.ex.forEach(e => gymSet.add(e)));
+        const gymList = Array.from(gymSet).sort();
+        html += `<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border dark:border-slate-800">
+            <h3 class="font-bold mb-2 text-sm dark:text-white">Übung wählen</h3>
+            <select onchange="state.selectedExercise=this.value;window.render()" class="w-full p-2 mb-4 rounded border dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+                <option value="" disabled ${!state.selectedExercise ? 'selected' : ''}>Wählen...</option>
+                <option value="Long Run" ${state.selectedExercise === 'Long Run' ? 'selected' : ''}>Long Run (Pace)</option>
+                <option value="Easy Run" ${state.selectedExercise === 'Easy Run' ? 'selected' : ''}>Easy Run (Pace)</option>
+                <optgroup label="Gym">${gymList.map(e => `<option value="${e}" ${state.selectedExercise === e ? 'selected' : ''}>${e}</option>`).join('')}</optgroup>
+            </select>`;
+
         if (state.selectedExercise) {
             let hist = [], maxVal = 0;
             const maxWeek = state.week + 1;
             for (let w = 0; w < maxWeek; w++) {
-                const weekPlan = generatePlan(w); let best = 0;
+                const weekPlan = generatePlan(w);
+                let best = 0;
                 for (let d = 0; d < 7; d++) {
-                    const l = state.logs[`w${w}d${d}`]; const dayPlan = weekPlan[d]; if (!l) continue;
+                    const l = state.logs[`w${w}d${d}`];
+                    const dayPlan = weekPlan[d];
+                    if (!l) continue;
                     const k = state.selectedExercise.replace(/\s/g, '');
-                    // Skip alt machine
                     if (l.altMachine && l.altMachine[k]) continue;
-                    if (l.exercises && l.exercises[k]) { const vol = l.exercises[k].reduce((sum, s) => sum + ((parseFloat(s.w) || 0) * (parseFloat(s.r) || 0)), 0); if (vol > best) best = vol; }
+                    if (l.exercises && l.exercises[k]) {
+                        const vol = l.exercises[k].reduce((sum, s) => sum + ((parseFloat(s.w) || 0) * (parseFloat(s.r) || 0)), 0);
+                        if (vol > best) best = vol;
+                    }
                     if (l.run && l.run.dist && l.run.time) {
-                        const dist = parseFloat(l.run.dist); const t = l.run.time.split(':'); const m = parseFloat(t[0]) + (parseFloat(t[1] || 0) / 60);
+                        const dist = parseFloat(l.run.dist);
+                        const t = l.run.time.split(':');
+                        const m = parseFloat(t[0]) + (parseFloat(t[1] || 0) / 60);
                         if (dist > 0 && m > 0) {
                             const p = m / dist;
                             if (state.selectedExercise === 'Long Run' && dayPlan && dayPlan.subtype === 'long') best = p;
@@ -337,27 +388,66 @@ function renderStats() {
                         }
                     }
                 }
-                if (best > maxVal) maxVal = best; hist.push({ w: w + 1, val: best });
+                if (best > maxVal) maxVal = best;
+                hist.push({ w: w + 1, val: best });
             }
-            const formatVal = (val, type) => { if (type.includes('Run')) { const min = Math.floor(val); const sec = Math.round((val - min) * 60); return `${min}:${sec < 10 ? '0' + sec : sec} `; } return val >= 1000 ? (val / 1000).toFixed(1) + 't' : val + 'kg'; }
+            const formatVal = (val, type) => {
+                if (type.includes('Run')) {
+                    const min = Math.floor(val);
+                    const sec = Math.round((val - min) * 60);
+                    return `${min}:${sec < 10 ? '0' + sec : sec}`;
+                }
+                return val >= 1000 ? (val / 1000).toFixed(1) + 't' : val + 'kg';
+            };
             if (maxVal > 0) {
-                const h = 100, w = 280;
-                const validHist = hist.filter(d => d.val > 0);
-                const points = validHist.map(d => {
-                    const origIdx = hist.indexOf(d);
-                    const x = (origIdx / Math.max(hist.length - 1, 1)) * w;
-                    const y = h - (d.val / maxVal) * h;
-                    return `${x},${y} `;
+                const h = 100, chartWidth = 280;
+                const points = hist.map((d, i) => {
+                    const x = (i / Math.max(hist.length - 1, 1)) * chartWidth;
+                    const y = d.val ? (h - (d.val / maxVal) * h) : h;
+                    return `${x},${y}`;
                 }).join(' ');
-                html += `<div class="mt-4"><svg width="100%" height="130" viewBox="-10 0 ${w + 20} ${h + 30}" class="overflow-visible" ontouchstart=""><polyline points="${points}" class="fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2" />${hist.map((d, i) => {
-                    if (!d.val) return ''; const x = (i / Math.max(hist.length - 1, 1)) * w; const y = h - (d.val / maxVal) * h; const lbl = formatVal(d.val, state.selectedExercise);
-                    return `<g class="chart-group" style="cursor:pointer" onclick="this.querySelector('.tooltip').classList.toggle('opacity-0');this.querySelector('.tooltip').classList.toggle('opacity-100')"><circle cx="${x}" cy="${y}" r="18" fill="transparent" /><circle cx="${x}" cy="${y}" r="4" class="dot fill-blue-500 dark:fill-blue-400 transition-all" /><text x="${x}" y="${h + 20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${d.w}</text><g class="tooltip opacity-0 transition-opacity duration-200 pointer-events-none"><rect x="${x - 22}" y="${y - 35}" width="44" height="25" rx="4" fill="#1e293b" /><text x="${x}" y="${y - 19}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${lbl}</text><path d="M${x - 4},${y - 10} L${x + 4},${y - 10} L${x},${y - 6} Z" fill="#1e293b" /></g></g>`;
-                }).join('')}</svg><div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf ${maxWeek} Wochen</div></div> `;
-            } else { html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400"> Keine Daten verfügbar</div> `; }
+
+                html += `<div class="mt-4">
+                    <svg width="100%" height="130" viewBox="-10 0 ${chartWidth + 20} ${h + 30}" class="overflow-visible">
+                        <polyline points="${points}" class="fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2" />
+                        ${hist.map((d, i) => {
+                    if (!d.val) return '';
+                    const x = (i / Math.max(hist.length - 1, 1)) * chartWidth;
+                    const y = h - (d.val / maxVal) * h;
+                    const lbl = formatVal(d.val, state.selectedExercise);
+                    return `<g class="chart-group" style="cursor:pointer" onclick="this.querySelector('.tooltip').classList.toggle('opacity-0');this.querySelector('.tooltip').classList.toggle('opacity-100')">
+                                <circle cx="${x}" cy="${y}" r="18" fill="transparent" />
+                                <circle cx="${x}" cy="${y}" r="4" class="dot fill-blue-500 dark:fill-blue-400" />
+                                <text x="${x}" y="${h + 20}" font-size="10" text-anchor="middle" fill="#94a3b8">W${d.w}</text>
+                                <g class="tooltip opacity-0 transition-opacity pointer-events-none">
+                                    <rect x="${x - 22}" y="${y - 35}" width="44" height="25" rx="4" fill="#1e293b" />
+                                    <text x="${x}" y="${y - 19}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${lbl}</text>
+                                </g>
+                            </g>`;
+                }).join('')}
+                    </svg>
+                    <div class="text-center text-xs opacity-50 mt-2 dark:text-slate-400">Verlauf ${maxWeek} Wochen</div>
+                </div>`;
+            } else {
+                html += `<div class="text-center py-10 opacity-40 text-sm dark:text-slate-400">Keine Daten verfügbar</div>`;
+            }
         }
-        html += `</div> `;
-    } html += `</div> `; return html;
-}
+        html += `</div>`;
+    }
+    html += `</div>`;
+    return html;
+};
+
+window.openLegal = (type) => {
+    document.getElementById('modal-title').innerHTML = `<span class="inline-flex items-center gap-2"><span class="w-5 h-5">${I.legal}</span> Rechtliches</span>`;
+    document.getElementById('modal-body').innerHTML = `
+        <div class="fade-in dark:text-slate-300">
+            ${legalTemplates[type]}
+            <button onclick="window.openSetup()" class="w-full mt-6 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-bold text-sm">Zurück zum Setup</button>
+        </div>
+    `;
+    document.getElementById('modal-overlay').style.display = 'flex';
+};
 
 // --- INIT ---
 window.onload = function () {

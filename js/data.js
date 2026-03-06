@@ -42,7 +42,10 @@ const I = {
     star: icon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>', 'text-yellow-500 dark:text-yellow-400'),
     crossX: icon('<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>', 'text-red-500 dark:text-red-400'),
     book: icon('<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>', 'text-indigo-500 dark:text-indigo-400'),
-    bulb: icon('<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>', 'text-amber-500 dark:text-amber-400')
+    bulb: icon('<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>', 'text-amber-500 dark:text-amber-400'),
+    info: icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>', 'text-blue-500 dark:text-blue-400'),
+    shield: icon('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>', 'text-emerald-500 dark:text-emerald-400'),
+    legal: icon('<path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/><path d="M20 12h-4"/><path d="M20 16h-4"/><path d="M20 8h-4"/><path d="M10 8h2"/><path d="M10 12h2"/><path d="M10 16h2"/>', 'text-slate-500 dark:text-slate-400')
 };
 
 const weekDays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
@@ -71,3 +74,35 @@ const mobilityRoutine = [
     { n: "Cat-Cow", d: "10 Wdh. Wirbelsäule mobilisieren." }, { n: "Ankle Rocks", d: "10 pro Seite. Sprunggelenk." },
     { n: "Deep Squat Hold", d: "30-60 Sek. halten." }, { n: "Couch Stretch", d: "30 Sek pro Seite. Hüftbeuger." }
 ];
+
+const legalTemplates = {
+    impressum: `
+        <h3 class="font-bold text-lg mb-4">Impressum</h3>
+        <p class="text-sm mb-4">Angaben gemäß § 5 TMG:</p>
+        <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 text-xs space-y-2 mb-6">
+            <p><strong>Betreiber:</strong> David Werner </p>
+            <p><strong>Kontakt:</strong> littledaaviid122@gmail.com </p>
+            <p><strong>Anschrift:</strong> Robert-Britsch Str. 54, 75449 Wurmberg </p>
+    `,
+    privacy: `
+        <h3 class="font-bold text-lg mb-4">Datenschutzerklärung</h3>
+        <div class="text-xs space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <section>
+                <p class="font-bold mb-1">1. Datenschutz auf einen Blick</p>
+                <p>Diese Webapp speichert alle Trainingsdaten <strong>lokal</strong> in deinem Browser (LocalStorage). Es findet keine Übertragung deiner Profildaten auf eigene Server statt.</p>
+            </section>
+            <section>
+                <p class="font-bold mb-1">2. Hosting (GitHub Pages)</p>
+                <p>Diese Seite wird bei GitHub Inc. gehostet. Bei der Nutzung werden technisch notwendige Daten (IP-Adresse) in Server-Logfiles verarbeitet. Details dazu findest du in der <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" class="underline">GitHub Privacy Statement</a>.</p>
+            </section>
+            <section>
+                <p class="font-bold mb-1">3. KI-Schnittstelle (Google Gemini)</p>
+                <p>Wenn du die KI-Funktionen nutzt, werden deine anonymisierten Trainings-Skelette (ohne Namen/Mail) an die Google Gemini API übertragen. Hierfür gilt die <a href="https://ai.google.dev/terms" target="_blank" class="underline">Datenschutzerklärung von Google</a>.</p>
+            </section>
+            <section>
+                <p class="font-bold mb-1">4. Deine Rechte</p>
+                <p>Du hast jederzeit das Recht auf Auskunft, Berichtigung oder Löschung deiner lokalen Daten (über die Backup/Reset-Funktion der App).</p>
+            </section>
+        </div>
+    `
+};
