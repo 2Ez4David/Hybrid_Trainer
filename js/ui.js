@@ -5,7 +5,7 @@ function getMobKey(w, dIdx) { return `mob_w${w}_d${dIdx}`; }
 function calculateTotalMobility() {
     let total = 0;
     for (const key in state.logs) {
-        if (key.startsWith('mob_w') && Array.isArray(state.logs[key]) && state.logs[key].length>= 5) total++;
+        if (key.startsWith('mob_w') && Array.isArray(state.logs[key]) && state.logs[key].length >= 5) total++;
     } return total;
 }
 
@@ -161,7 +161,7 @@ window.openDay = (json) => {
             const hist = getHistory('run', null, day.id); let histText = '';
             if (hist) {
                 const dist = parseFloat(hist.dist); const t = hist.time.split(':'); const m = parseFloat(t[0]) + (parseFloat(t[1] || 0) / 60); let pace = '-';
-                if (dist> 0 && m> 0) { const pVal = m / dist; if (isFinite(pVal)) { const min = Math.floor(pVal); const sec = Math.round((pVal - min) * 60); pace = `${min}:${sec < 10 ? '0' + sec : sec} `; } }
+                if (dist > 0 && m > 0) { const pVal = m / dist; if (isFinite(pVal)) { const min = Math.floor(pVal); const sec = Math.round((pVal - min) * 60); pace = `${min}:${sec < 10 ? '0' + sec : sec} `; } }
                 histText = `<div class="mb-4 text-xs text-blue-500 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/20 rounded"> Letzter Lauf: ${hist.dist} km in ${hist.time} (${pace} /km)</div> `;
             }
             html += `${histText}<div class="grid grid-cols-2 gap-4 mb-4" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><div><label class="text-xs opacity-60 dark:text-slate-400">Zeit</label><input class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.time}" onchange="window.logRun('${day.id}','time',this.value)" placeholder="45:00"></div><div><label class="text-xs opacity-60 dark:text-slate-400">km</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.dist}" onchange="window.logRun('${day.id}','dist',this.value)" placeholder="5.0"></div></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">Ø BPM</label><input type="number" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" value="${run.bpm}" onchange="window.logRun('${day.id}','bpm',this.value)" placeholder="145"></div><div class="mb-4"><label class="text-xs opacity-60 dark:text-slate-400">RPE (1-10): <span id="rpe-d">${run.rpe}</span></label><input type="range" min="1" max="10" class="w-full" value="${run.rpe}" oninput="document.getElementById('rpe-d').innerText=this.value; window.logRun('${day.id}','rpe',this.value)"></div>`;
@@ -230,7 +230,7 @@ window.render = function () {
             const totalSessions = calculateTotalMobility();
             html += `<div class="fade-in"><div class="mb-6 p-4 rounded-xl bg-emerald-50/90 dark:bg-emerald-900/40 backdrop-blur-sm border border-emerald-100 dark:border-emerald-800 flex justify-between items-center"><div><h2 class="font-bold text-lg text-emerald-800 dark:text-emerald-400 leading-tight">Mobility</h2><p class="text-xs text-emerald-600 dark:text-emerald-500 leading-tight">Woche ${state.week + 1}</p></div><div class="text-center bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm"><div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">${totalSessions}</div><div class="text-[10px] uppercase font-bold opacity-60 dark:text-slate-400">Total</div></div></div><div class="space-y-3">
                 ${Array(7).fill(0).map((_, i) => {
-                const key = getMobKey(state.week, i); const doneCount = state.logs[key] ? state.logs[key].length : 0; const isDone = doneCount>= 5;
+                const key = getMobKey(state.week, i); const doneCount = state.logs[key] ? state.logs[key].length : 0; const isDone = doneCount >= 5;
                 return `<div onclick="window.openMobilityDay(${state.week}, ${i})" class="flex items-center p-3 rounded-xl border cursor-pointer transition-all ${isDone ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-900/30' : 'bg-white/80 dark:bg-slate-900/80 border-slate-100 dark:border-slate-800'}"><div class="w-12 text-xs font-bold opacity-50 uppercase text-slate-400 dark:text-slate-500 text-center">${weekDays[i].substring(0, 2).toUpperCase()}</div><div class="flex-1 ml-4"><div class="font-bold text-sm dark:text-white">Tägliche Routine</div><div class="text-xs opacity-60 dark:text-slate-400">${doneCount} / ${mobilityRoutine.length} Übungen</div></div><div class="w-8 h-8 rounded-full flex items-center justify-center ${isDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-300'}">${isDone ? I.check : I.yoga}</div></div>`;
             }).join('')}</div></div> `;
         } else if (state.view === 'plan') {
@@ -260,7 +260,7 @@ window.render = function () {
                     if (log && log.run) {
                         const dist = parseFloat(log.run.dist) || 0;
                         const time = log.run.time || '-';
-                        if (dist> 0 || time !== '-') {
+                        if (dist > 0 || time !== '-') {
                             // Extrahieren des Typs (z.B. "Easy Run" oder "Ergometer") aus dem ursprünglichen Titel
                             const baseTitleSplit = day.title.split('(')[0].trim();
                             dTitle = `${baseTitleSplit} (${dist} km)`;
@@ -291,17 +291,19 @@ function renderStats() {
     let gymData = [], runData = []; let totalKm = 0, totalKg = 0, totalRPE = 0, rpeCnt = 0;
     for (let w = 0; w <= state.week; w++) {
         let v = 0, d = 0;
-        for (let k in state.logs) {
-            if (k.startsWith(`w${w} d`)) {
-                const l = state.logs[k];
-                if (l.exercises) {
-                    Object.keys(l.exercises).forEach(exKey => {
-                        // Skip alt machine exercises
-                        if (l.altMachine && l.altMachine[exKey]) return;
-                        l.exercises[exKey].forEach(x => v += (x.w * x.r) || 0);
-                    });
-                }
-                if (l.run) { const dist = parseFloat(l.run.dist) || 0; d += dist; if (l.run.rpe) { totalRPE += parseFloat(l.run.rpe); rpeCnt++; } }
+        for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+            const l = state.logs[`w${w}d${dayIdx}`];
+            if (!l) continue;
+            if (l.exercises) {
+                Object.keys(l.exercises).forEach(exKey => {
+                    if (l.altMachine && l.altMachine[exKey]) return;
+                    l.exercises[exKey].forEach(x => v += (x.w * x.r) || 0);
+                });
+            }
+            if (l.run) {
+                const dist = parseFloat(l.run.dist) || 0;
+                d += dist;
+                if (l.run.rpe) { totalRPE += parseFloat(l.run.rpe); rpeCnt++; }
             }
         }
         totalKg += v; totalKm += d; gymData.push(v); runData.push(d);
@@ -318,29 +320,29 @@ function renderStats() {
         if (state.selectedExercise) {
             let hist = [], maxVal = 0;
             const maxWeek = state.week + 1;
-            for (let w = 0; w <maxWeek; w++) {
+            for (let w = 0; w < maxWeek; w++) {
                 const weekPlan = generatePlan(w); let best = 0;
                 for (let d = 0; d < 7; d++) {
-                    const l = state.logs[`w${w}d${d} `]; const dayPlan = weekPlan[d]; if (!l) continue;
+                    const l = state.logs[`w${w}d${d}`]; const dayPlan = weekPlan[d]; if (!l) continue;
                     const k = state.selectedExercise.replace(/\s/g, '');
                     // Skip alt machine
                     if (l.altMachine && l.altMachine[k]) continue;
-                    if (l.exercises && l.exercises[k]) { const vol = l.exercises[k].reduce((sum, s) => sum + ((parseFloat(s.w) || 0) * (parseFloat(s.r) || 0)), 0); if (vol> best) best = vol; }
+                    if (l.exercises && l.exercises[k]) { const vol = l.exercises[k].reduce((sum, s) => sum + ((parseFloat(s.w) || 0) * (parseFloat(s.r) || 0)), 0); if (vol > best) best = vol; }
                     if (l.run && l.run.dist && l.run.time) {
                         const dist = parseFloat(l.run.dist); const t = l.run.time.split(':'); const m = parseFloat(t[0]) + (parseFloat(t[1] || 0) / 60);
-                        if (dist> 0 && m> 0) {
+                        if (dist > 0 && m > 0) {
                             const p = m / dist;
                             if (state.selectedExercise === 'Long Run' && dayPlan && dayPlan.subtype === 'long') best = p;
                             else if (state.selectedExercise === 'Easy Run' && dayPlan && (dayPlan.subtype === 'easy' || dayPlan.type === 'run' && dayPlan.subtype !== 'long')) best = p;
                         }
                     }
                 }
-                if (best> maxVal) maxVal = best; hist.push({ w: w + 1, val: best });
+                if (best > maxVal) maxVal = best; hist.push({ w: w + 1, val: best });
             }
-            const formatVal = (val, type) => { if (type.includes('Run')) { const min = Math.floor(val); const sec = Math.round((val - min) * 60); return `${min}:${sec < 10 ? '0' + sec : sec} `; } return val>= 1000 ? (val / 1000).toFixed(1) + 't' : val + 'kg'; }
-            if (maxVal> 0) {
+            const formatVal = (val, type) => { if (type.includes('Run')) { const min = Math.floor(val); const sec = Math.round((val - min) * 60); return `${min}:${sec < 10 ? '0' + sec : sec} `; } return val >= 1000 ? (val / 1000).toFixed(1) + 't' : val + 'kg'; }
+            if (maxVal > 0) {
                 const h = 100, w = 280;
-                const validHist = hist.filter(d => d.val> 0);
+                const validHist = hist.filter(d => d.val > 0);
                 const points = validHist.map(d => {
                     const origIdx = hist.indexOf(d);
                     const x = (origIdx / Math.max(hist.length - 1, 1)) * w;
