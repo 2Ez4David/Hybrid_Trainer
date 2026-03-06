@@ -86,7 +86,14 @@ function generatePlan(wIdx) {
     const z2 = zones.z2;
     const z3 = zones.z3;
     const lrTitle = isLastWeek && state.user.goal !== 'Allgemeine Fitness' ? `${state.user.goal}` : `Long Run (${lrDist} km)`;
-    const lrDesc = isRecovery && !isLastWeek ? "Cutback Week: Erholung! (Z2: " + z2 + ")" : `Zone 2: ${z2}`;
+
+    let lrDesc = `Zone 2: ${z2}`;
+    if (isRecovery && !isLastWeek) {
+        lrDesc = `Cutback Week: Erholung! (Z2: ${z2})`;
+    } else if (isLastWeek && state.user.goal !== 'Allgemeine Fitness') {
+        lrDesc = "Race Day! Viel Erfolg!";
+    }
+
     const lr = { type: 'run', subtype: 'long', title: lrTitle, desc: lrDesc };
     if (!days[6]) days[6] = { ...lr, id: `w${wIdx}d6` }; else days[5] = { ...lr, id: `w${wIdx}d5` };
 

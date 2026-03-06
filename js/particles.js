@@ -3,44 +3,13 @@ const canvas = document.getElementById('antigravity-canvas');
 const ctx = canvas.getContext('2d');
 let particlesArray = [];
 let mouse = { x: null, y: null, radius: 100 };
-let gyro = { x: 0, y: 0 };
-let globalDriftX = 0, globalDriftY = 0;
+let gyro = { vx: 0, vy: 0, active: false };
 
 window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
 window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
 window.addEventListener('touchmove', (event) => { mouse.x = event.touches[0].clientX; mouse.y = event.touches[0].clientY; }, { passive: true });
 window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
 window.addEventListener('touchend', () => { mouse.x = undefined; mouse.y = undefined; });
-
-let gyroInitialized = false;
-function initGyro() {
-    if (gyroInitialized) return;
-
-    const requestGyro = () => {
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(p => {
-                if (p === 'granted') {
-                    window.addEventListener('deviceorientation', handleGyro, true);
-                    gyroInitialized = true;
-                }
-            }).catch(() => { });
-        } else {
-            window.addEventListener('deviceorientation', handleGyro, true);
-            gyroInitialized = true;
-        }
-        // Remove listeners after first interaction
-        document.body.removeEventListener('click', requestGyro);
-        document.body.removeEventListener('touchstart', requestGyro);
-    };
-
-    // Attach to first user interaction
-    document.body.addEventListener('click', requestGyro, { once: true });
-    document.body.addEventListener('touchstart', requestGyro, { once: true });
-}
-function handleGyro(e) {
-    gyro.x = (e.gamma || 0) / 45;
-    gyro.y = (e.beta || 0) / 45;
-}
 
 class Particle {
     constructor(x, y, size, speedY) {
@@ -74,10 +43,9 @@ class Particle {
     update() {
         this.vx *= 0.94;
         this.vy *= 0.94;
-        // Global gyro drift — all particles move together
-        this.x += this.speedX + this.vx + globalDriftX;
+        this.x += this.speedX + this.vx + gyro.vx;
         this.y -= this.speedY;
-        this.y += this.vy + globalDriftY;
+        this.y += this.vy + gyro.vy;
         // Wrap around
         if (this.y < 0 - this.size) { this.y = canvas.height + this.size; this.x = Math.random() * canvas.width; }
         if (this.x < -10) this.x = canvas.width + 10;
@@ -132,12 +100,55 @@ function animateParticles(timestamp) {
     }
     lastFrame = timestamp - (delta % targetInterval);
 
-    // Smoothly apply gyro as global drift
-    globalDriftX += (gyro.x * 0.5 - globalDriftX) * 0.08;
-    globalDriftY += (gyro.y * 0.3 - globalDriftY) * 0.08;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
     // No connection lines — clean & performant
     requestAnimationFrame(animateParticles);
+}
+
+function initGyro() {
+    if (gyro.active) return;
+
+    const handleOrientation = (event) => {
+        let x = event.gamma; // In degree in the range [-90,90]
+        let y = event.beta;  // In degree in the range [-180,180]
+
+        if (x === null || y === null) return;
+
+        // Limit values
+        if (x > 90) x = 90;
+        if (x < -90) x = -90;
+        if (y > 90) y = 90;
+        if (y < -90) y = -90;
+
+        // Tilt modifiers - tilt right (gamma > 0) -> move particles left for parallax effect
+        // Tweak multiplier to adjust sensitivity
+        gyro.vx = -x * 0.04;
+        gyro.vy = -y * 0.04;
+    };
+
+    const enableGyro = () => {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        gyro.active = true;
+                    }
+                })
+                .catch(console.error);
+        } else {
+            window.addEventListener('deviceorientation', handleOrientation);
+            gyro.active = true;
+        }
+
+        document.removeEventListener('click', enableGyro);
+        document.removeEventListener('touchend', enableGyro);
+    };
+
+    // Require user interaction to prompt for permission (iOS 13+ requirement)
+    // Avoid using 'touchstart', since Safari iOS might not consider it a deliberate user gesture
+    // (could be the start of a scroll), which blocks `requestPermission()`.
+    document.addEventListener('click', enableGyro, { once: true });
+    document.addEventListener('touchend', enableGyro, { once: true });
 }
