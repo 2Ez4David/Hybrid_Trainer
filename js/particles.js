@@ -21,7 +21,7 @@ class Particle {
         this.z = Math.random(); // Depth 0 (back) to 1 (front)
 
         // Classic settings
-        this.opacity = (Math.random() * 0.2 + 0.1) * (0.5 + this.z * 0.5); // Softer opacity
+        this.opacity = (Math.random() * 0.35 + 0.2) * (0.5 + this.z * 0.5); // Much higher base opacity
         this.hue = Math.random() * 60 + 200;
 
         // String settings
@@ -32,11 +32,11 @@ class Particle {
         this.baseLength = Math.floor(Math.random() * 8) + 4; // Much shorter lines
         // Pre-compute color strings for performance (avoid per-frame string allocation)
         const alpha = this.opacity;
-        this.colorDark = `hsla(${this.hue}, 80%, 70%, ${(alpha * 1.6).toFixed(3)})`;
-        this.colorLight = `hsla(${this.hue}, 75%, 55%, ${alpha.toFixed(3)})`;
-        this.glowDark = `hsla(${this.hue}, 80%, 70%, ${(alpha * 0.12).toFixed(3)})`;
-        this.glowLight = `hsla(${this.hue}, 75%, 55%, ${(alpha * 0.12).toFixed(3)})`;
-        this.hasGlow = this.size > 2.5;
+        this.colorDark = `hsla(${this.hue}, 100%, 70%, ${(alpha * 4.0).toFixed(3)})`;
+        this.colorLight = `hsla(${this.hue}, 100%, 50%, ${(alpha * 1.5).toFixed(3)})`;
+        this.glowDark = `hsla(${this.hue}, 100%, 70%, ${(alpha * 0.3).toFixed(3)})`;
+        this.glowLight = `hsla(${this.hue}, 100%, 50%, ${(alpha * 0.2).toFixed(3)})`;
+        this.hasGlow = this.size > 2.5; // Back to original glow frequency
     }
     draw() {
         const isString = state.user && state.user.particleStyle === 'strings';
@@ -232,12 +232,12 @@ function initParticles() {
 
     let isString = state.user && state.user.particleStyle === 'strings';
     // Substantially reduce particle count for strings to make it much less distracting
-    let countDivider = isString ? 20000 : 8000;
+    let countDivider = isString ? 10000 : 4000;
 
     // Much fewer particles — performance friendly for mobile
-    const numberOfParticles = Math.min(120, Math.floor((canvas.width * canvas.height) / countDivider));
+    const numberOfParticles = Math.min(280, Math.floor((canvas.width * canvas.height) / countDivider));
     for (let i = 0; i < numberOfParticles; i++) {
-        let size = isString ? (Math.random() * 1.5) + 0.5 : (Math.random() * 3.5) + 0.5; // Strings are thinner
+        let size = isString ? (Math.random() * 2.0) + 1.2 : (Math.random() * 5.0) + 1.2; // Even larger
         let x = Math.random() * canvas.width;
         let y = Math.random() * canvas.height;
         let speedY = (Math.random() * 0.12) + 0.02;
