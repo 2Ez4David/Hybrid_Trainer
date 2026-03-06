@@ -79,10 +79,16 @@ const legalTemplates = {
     impressum: `
         <h3 class="font-bold text-lg mb-4">Impressum</h3>
         <p class="text-sm mb-4">Angaben gemäß § 5 TMG:</p>
-        <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 text-xs space-y-2 mb-6">
-            <p><strong>Betreiber:</strong> <span class="reverse">renreW divaD</span></p>
-            <p><strong>Kontakt:</strong> <span class="reverse">moc.liamg@221diiavadtelttil</span></p>
-            <p><strong>Anschrift:</strong> <span class="reverse">grebmruW 94457 ,45 .rtS hcstirB-treboR</span></p>
+        <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border dark:border-slate-700 text-[10px] space-y-2 mb-6">
+            <div class="grid grid-cols-[60px_1fr] gap-2">
+                <strong>Betreiber:</strong> <span class="reverse">renreW divaD</span>
+            </div>
+            <div class="grid grid-cols-[60px_1fr] gap-2">
+                <strong>Kontakt:</strong> <span class="reverse">moc.liamg@221diiavadtelttil</span>
+            </div>
+            <div class="grid grid-cols-[60px_1fr] gap-2">
+                <strong>Anschrift:</strong> <span class="reverse">grebmruW 94457 ,45 .rtS hcstirB-treboR</span>
+            </div>
         </div>
     `,
     privacy: `
