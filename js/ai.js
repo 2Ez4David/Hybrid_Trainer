@@ -290,7 +290,7 @@ Nutzerprofil:
 - Erfahrungslevel: ${state.user.fitness}
 - Primäres Ziel: ${state.user.goal}
 - Max. Herzfrequenz: ${state.user.maxHR} bpm
-${state.user.goalTime ? `- Zielzeit: ${state.user.goalTime}\n` : ''}${state.user.benchmarkDist ? `- Benchmark Lauf: ${state.user.benchmarkDist}km in ${state.user.benchmarkTime || '?'} (${state.user.benchmarkNotes || 'keine Notizen'})\n` : ''}
+${state.user.goalTime ? `- Zielzeit: ${state.user.goalTime}\n` : ''}${state.user.benchmarkDist ? `- Benchmark Lauf: ${state.user.benchmarkDist}km in ${state.user.benchmarkTime || '?'} @ ${state.user.benchmarkAvgHR || '?'} bpm (${state.user.benchmarkNotes || 'keine Notizen'})\n` : ''}
 Hier ist der Standard-Plan (${totalWeeks} Wochen à 7 Tage): ${JSON.stringify(skeletonWeeks)}
 Prinzipien: Progressive Überlastung (max 10%/Woche), 80/20 Regel, Periodisierung (Base→Build→Peak→Taper), Superkompensation.
 Antwort: JSON.

@@ -35,48 +35,10 @@ window.toggleMobilityCheck = (key, exIdx, w, dIdx) => {
 // --- SETUP ---
 window.openSetup = () => {
     const cfg = state.configs[state.week] || { uni: [], vol: true };
-    let html = `<p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400">GYM TAGE AUSWÄHLEN</p><div class="flex gap-1.5 mb-6">`;
-    weekDays.forEach(d => {
-        const act = cfg.uni.includes(d);
-        const short = d.substring(0, 2);
-        html += `<button onclick="window.toggleUni('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md shadow-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}"><span class="text-sm mb-0.5">${act ? I.gym : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-blue-700 dark:text-blue-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
-    });
-    const zones = window.getHRZones(state.user);
-    html += `</div>
-    <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border dark:border-slate-700 mb-4">
-        <label class="block text-xs font-bold dark:text-white mb-2">${I.target} Fokus & Ziele</label>
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Event ($Ziel)</label><input type="text" value="${state.user.goal}" onchange="state.user.goal=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
-            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zielzeit</label><input type="text" value="${state.user.goalTime || ''}" onchange="state.user.goalTime=this.value; save()" placeholder="z.B. 1:45:00" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
-        </div>
-        <label class="block text-xs font-bold dark:text-white mt-4 mb-2">${I.fire} Aktueller Benchmark</label>
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Distanz (km)</label><input type="number" step="0.1" value="${state.user.benchmarkDist || ''}" onchange="state.user.benchmarkDist=this.value; save()" placeholder="z.B. 5" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
-            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zeit (Pace)</label><input type="text" value="${state.user.benchmarkTime || ''}" onchange="state.user.benchmarkTime=this.value; save()" placeholder="z.B. 00:25:30" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
-        </div>
-    </div>
-    <div class="grid grid-cols-2 gap-2 mb-2">
-        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Max HR (${I.heart})</label><input type="number" value="${state.user.maxHR}" onchange="state.user.maxHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
-        <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Ruhepuls (${I.sleep})</label><input type="number" value="${state.user.restHR}" onchange="state.user.restHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
-    </div>
-    <div class="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 mb-4 text-center">
-        <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 2</div><div class="text-xs font-bold text-blue-500">${zones.z2}</div></div>
-        <div class="flex-1 border-l border-r border-slate-200 dark:border-slate-700"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 3</div><div class="text-xs font-bold text-orange-500">${zones.z3}</div></div>
-        <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 4</div><div class="text-xs font-bold text-red-500">${zones.z4}</div></div>
-    </div>
-    <div class="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-        <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center">${I.sparkle} Gemini API Key</label>
-        <input type="password" value="${state.user.apiKey || ''}" onchange="state.user.apiKey=this.value; save()" placeholder="Dein API Key..." class="w-full p-2 text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 focus:outline-none">
-    </div>
-    <div class="mb-4">
-        <button type="button" id="ai-setup-btn" onclick="window.fetchSetupAIPlan()" class="w-full flex justify-center items-center gap-2 p-3 rounded-xl bg-purple-600 text-white font-bold text-xs shadow-md active:scale-95 transition-transform" ${!state.user.apiKey ? 'disabled style="opacity:0.5"' : ''}>
-            ${I.brain} Training smart planen (KI)
-        </button>
-        <div class="text-[10px] text-center mt-1 opacity-60 dark:text-slate-400">Nutzt Woche ${state.week} Daten & aktuelles Setup</div>
-    </div>`;
-
     const tsName = state.user.teamSport && state.user.teamSport !== 'none' ? state.user.teamSport.charAt(0).toUpperCase() + state.user.teamSport.slice(1) : 'Teamsport';
-    html += `<p class="text-xs font-bold opacity-50 mb-3 mt-6 dark:text-slate-400"> ${tsName.toUpperCase()} TAGE AUSWÄHLEN</p><div class="flex gap-1.5 mb-6">`;
+
+    let html = `<p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400 uppercase tracking-tighter">${tsName} Tage</p>
+    <div class="flex gap-1.5 mb-6">`;
     if (!Array.isArray(cfg.vol)) cfg.vol = cfg.vol ? (state.user.teamSportDays || [state.user.teamSportDay || 'Dienstag']) : [];
     weekDays.forEach(d => {
         const act = cfg.vol.includes(d);
@@ -84,40 +46,86 @@ window.openSetup = () => {
         html += `<button onclick="window.toggleVol('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 shadow-md shadow-pink-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-pink-300'}"><span class="text-sm mb-0.5">${act ? I.vol : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-pink-700 dark:text-pink-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
     });
     html += `</div>
-    <p class="text-xs font-bold opacity-50 mb-3 mt-6 dark:text-slate-400">EFFEKTE</p>
-    <div class="space-y-2 mb-4">
-    <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <div class="flex items-center gap-2">
-            <div class="w-5 h-5">${I.sparkle}</div>
-            <span class="text-xs font-bold dark:text-white">Partikeleffekte</span>
+
+    <p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400 uppercase tracking-tighter">Gym Tage</p>
+    <div class="flex gap-1.5 mb-6">`;
+    weekDays.forEach(d => {
+        const act = cfg.uni.includes(d);
+        const short = d.substring(0, 2);
+        html += `<button onclick="window.toggleUni('${d}')" class="flex flex-col items-center py-2 px-1 rounded-lg border-2 flex-1 min-w-0 transition-all ${act ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-md shadow-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}"><span class="text-sm mb-0.5">${act ? I.gym : '·'}</span><span class="text-[10px] font-bold ${act ? 'text-blue-700 dark:text-blue-300' : 'opacity-50 dark:text-slate-400'}">${short}</span></button>`;
+    });
+    html += `</div>
+
+    <p class="text-xs font-bold opacity-50 mb-3 dark:text-slate-400 uppercase tracking-tighter">Effekte & Design</p>
+    <div class="space-y-2 mb-6">
+        <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <div class="flex items-center gap-2"><div class="w-5 h-5">${I.sparkle}</div><span class="text-xs font-bold dark:text-white">Partikeleffekte</span></div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" ${state.user.particlesEnabled !== false ? 'checked' : ''} onchange="state.user.particlesEnabled = this.checked; save()" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" ${state.user.particlesEnabled !== false ? 'checked' : ''} onchange="state.user.particlesEnabled = this.checked; save()" class="sr-only peer">
-            <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-        </label>
-    </div>
-    <div class="flex flex-col gap-2 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <div class="text-xs font-bold dark:text-white mb-2">Partikel Style</div>
-        <div class="flex gap-2">
-            <button onclick="state.user.particleStyle='classic'; save(); window.initParticles(); window.openSetup()" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-colors ${state.user.particleStyle !== 'strings' ? 'bg-indigo-500 text-white shadow' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">Klassisch</button>
-            <button onclick="state.user.particleStyle='strings'; save(); window.initParticles(); window.openSetup()" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-colors ${state.user.particleStyle === 'strings' ? 'bg-indigo-500 text-white shadow' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">Schwarm</button>
+        <div class="flex flex-col gap-2 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <div class="text-xs font-bold dark:text-white mb-2">Partikel Style</div>
+            <div class="flex gap-2">
+                <button onclick="state.user.particleStyle='classic'; save(); window.initParticles(); window.openSetup()" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-colors ${state.user.particleStyle !== 'strings' ? 'bg-indigo-500 text-white shadow' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">Klassisch</button>
+                <button onclick="state.user.particleStyle='strings'; save(); window.initParticles(); window.openSetup()" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-colors ${state.user.particleStyle === 'strings' ? 'bg-indigo-500 text-white shadow' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">Schwarm</button>
+            </div>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <div class="flex items-center gap-2"><div class="w-5 h-5">${I.gradient}</div><span class="text-xs font-bold dark:text-white">Farbverlauf</span></div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" ${state.user.gradientEnabled !== false ? 'checked' : ''} onchange="state.user.gradientEnabled = this.checked; save(); document.querySelector('.gradient-bg').style.display = this.checked ? '' : 'none'" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
         </div>
     </div>
-    <div class="flex items-center justify-between p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <div class="flex items-center gap-2">
-            <div class="w-5 h-5">${I.gradient}</div>
-            <span class="text-xs font-bold dark:text-white">Farbverlauf</span>
+
+    <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border dark:border-slate-700 mb-4 mt-8">
+        <label class="block text-xs font-bold dark:text-white mb-3 uppercase tracking-tighter">${I.target} Profil & Ziele</label>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Event ($Ziel)</label><input type="text" value="${state.user.goal}" onchange="state.user.goal=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
+            <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zielzeit</label><input type="text" value="${state.user.goalTime || ''}" onchange="state.user.goalTime=this.value; save()" placeholder="z.B. 1:45:00" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" ${state.user.gradientEnabled !== false ? 'checked' : ''} onchange="state.user.gradientEnabled = this.checked; save(); document.querySelector('.gradient-bg').style.display = this.checked ? '' : 'none'" class="sr-only peer">
-            <div class="w-9 h-5 bg-slate-300 peer-checked:bg-indigo-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-        </label>
+        
+        <div class="pt-4 border-t dark:border-slate-700">
+            <label class="block text-xs font-bold dark:text-white mb-3 uppercase tracking-tighter">${I.fire} Aktueller Benchmark</label>
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">km</label><input type="number" step="0.1" value="${state.user.benchmarkDist || ''}" onchange="state.user.benchmarkDist=this.value; save()" placeholder="5" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
+                <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Zeit</label><input type="text" value="${state.user.benchmarkTime || ''}" onchange="state.user.benchmarkTime=this.value; save()" placeholder="00:25:00" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
+                <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Ø HF</label><input type="number" value="${state.user.benchmarkAvgHR || ''}" onchange="state.user.benchmarkAvgHR=this.value; save()" placeholder="165" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs"></div>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t dark:border-slate-700 mt-4">
+            <label class="block text-xs font-bold dark:text-white mb-3 uppercase tracking-tighter">${I.heart} Herzfrequenz</label>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Max HR</label><input type="number" value="${state.user.maxHR}" onchange="state.user.maxHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
+                <div><label class="text-[10px] font-bold opacity-60 dark:text-slate-400 block mb-1">Ruhepuls</label><input type="number" value="${state.user.restHR}" onchange="state.user.restHR=this.value; save()" class="w-full p-2 border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 text-xs text-center"></div>
+            </div>
+            <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-lg border dark:border-slate-700 text-center">
+                <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 2</div><div class="text-xs font-bold text-blue-500">${window.getHRZones(state.user).z2}</div></div>
+                <div class="flex-1 border-l border-r dark:border-slate-700"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 3</div><div class="text-xs font-bold text-orange-500">${window.getHRZones(state.user).z3}</div></div>
+                <div class="flex-1"><div class="text-[10px] font-bold opacity-60 dark:text-slate-400">Zone 4</div><div class="text-xs font-bold text-red-500">${window.getHRZones(state.user).z4}</div></div>
+            </div>
+        </div>
     </div>
+
+    <div class="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 mt-6">
+        <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-400 mb-1 flex gap-1 items-center uppercase tracking-tighter">${I.sparkle} Gemini API Key</label>
+        <input type="password" value="${state.user.apiKey || ''}" onchange="state.user.apiKey=this.value; save()" placeholder="Dein API Key..." class="w-full p-2 text-xs border rounded dark:bg-slate-800 dark:text-white dark:border-slate-700 focus:outline-none">
     </div>
+
+    <button type="button" id="ai-setup-btn" onclick="window.fetchSetupAIPlan()" class="w-full flex justify-center items-center gap-2 p-3 rounded-xl bg-purple-600 text-white font-bold text-xs shadow-md active:scale-95 transition-transform" ${!state.user.apiKey ? 'disabled style="opacity:0.5"' : ''}>
+        ${I.brain} Training smart planen (KI)
+    </button>
+    <div class="text-[10px] text-center mt-1 opacity-60 dark:text-slate-400 mb-8">Nutzt Woche ${state.week} Daten & aktuelles Setup</div>
+
     <div class="grid grid-cols-2 gap-2 mt-2">
         <button onclick="window.exportData()" class="p-3 rounded-xl bg-green-600 text-white text-xs font-bold flex items-center justify-center gap-2">${I.dl} Backup</button>
         <button onclick="document.getElementById('import-input').click()" class="p-3 rounded-xl bg-orange-500 text-white text-xs font-bold flex items-center justify-center gap-2">${I.ul} Laden</button>
     </div>
+
     <div class="mt-8 pt-6 border-t dark:border-slate-700">
         <p class="text-[10px] font-bold opacity-40 dark:text-slate-400 mb-3 uppercase tracking-tighter">Rechtliches</p>
         <div class="grid grid-cols-2 gap-2">
@@ -126,7 +134,8 @@ window.openSetup = () => {
         </div>
     </div>
     <div onclick="if(confirm('Alles zurücksetzen?')){localStorage.clear();location.reload()}" class="mt-8 text-center text-[10px] font-bold text-red-500/50 hover:text-red-500 transition-colors cursor-pointer uppercase tracking-widest">App Reset</div>`;
-    document.getElementById('modal-title').innerText = `Setup W${state.week + 1} `;
+
+    document.getElementById('modal-title').innerText = `Setup W${state.week + 1}`;
     document.getElementById('modal-body').innerHTML = html;
     document.getElementById('modal-footer').innerHTML = '';
     document.getElementById('modal-overlay').style.display = 'flex';

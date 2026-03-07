@@ -1,7 +1,7 @@
 // --- ONBOARDING: Splash, Multi-Step, API Key Guide, Tutorial ---
 
 let obStep = 0;
-const obData = { fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', goalTime: '', maxHR: 190, apiKey: '', teamSport: 'none', teamSportDays: ['Dienstag'], benchmarkDist: '', benchmarkTime: '', benchmarkNotes: '' };
+const obData = { fitness: 'Beginner', goal: 'Halbmarathon', goalDate: '', goalTime: '', maxHR: 190, apiKey: '', teamSport: 'none', teamSportDays: ['Dienstag'], benchmarkDist: '', benchmarkTime: '', benchmarkAvgHR: '', benchmarkNotes: '' };
 const obSteps = [
     { icon: 'run', title: 'Erfahrung', sub: 'Wie lange trainierst du schon?', field: 'fitness', type: 'select', options: [{ v: 'Beginner', i: 'seedling', l: 'Anfänger (0-1 Jahr)' }, { v: 'Intermediate', i: 'muscle', l: 'Fortgeschritten (1-3 Jahre)' }, { v: 'Pro', i: 'trophy', l: 'Profi (3+ Jahre)' }] },
     { icon: 'target', title: 'Dein Ziel', sub: 'Worauf arbeitest du hin?', field: 'goal', type: 'select', options: [{ v: 'Halbmarathon', i: 'medal', l: 'Halbmarathon' }, { v: '10k Lauf', i: 'wind', l: '10k Lauf' }, { v: 'Marathon', i: 'fire', l: 'Marathon' }, { v: 'Allgemeine Fitness', i: 'star', l: 'Allgemeine Fitness (Hybrid)' }] },
@@ -75,9 +75,15 @@ function renderObStep() {
                     <label class="block text-xs font-bold dark:text-slate-300 mb-1">Distanz (km)</label>
                     <input type="number" step="0.1" id="ob-bench-dist" value="${obData.benchmarkDist}" onchange="obData.benchmarkDist=this.value" placeholder="z.B. 5 oder 10" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold dark:text-slate-300 mb-1">Zeit (hh:mm:ss)</label>
-                    <input type="text" id="ob-bench-time" value="${obData.benchmarkTime}" onchange="obData.benchmarkTime=this.value" placeholder="z.B. 00:25:30" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold dark:text-slate-300 mb-1">Zeit (hh:mm:ss)</label>
+                        <input type="text" id="ob-bench-time" value="${obData.benchmarkTime}" onchange="obData.benchmarkTime=this.value" placeholder="00:25:30" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold dark:text-slate-300 mb-1">Ø HF (bpm)</label>
+                        <input type="number" id="ob-bench-hr" value="${obData.benchmarkAvgHR}" onchange="obData.benchmarkAvgHR=this.value" placeholder="165" class="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-lg focus:border-blue-500 outline-none">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold dark:text-slate-300 mb-1">Notizen zum Lauf</label>
@@ -132,6 +138,7 @@ async function finalizeOnboarding() {
     state.user.teamSportDays = obData.teamSportDays || [];
     state.user.benchmarkDist = obData.benchmarkDist;
     state.user.benchmarkTime = obData.benchmarkTime;
+    state.user.benchmarkAvgHR = obData.benchmarkAvgHR;
     state.user.benchmarkNotes = obData.benchmarkNotes;
     state.user.initialized = true;
 
